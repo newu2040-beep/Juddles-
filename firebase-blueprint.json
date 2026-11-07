@@ -1,0 +1,156 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile, currency preferences, opening balance, and UI settings.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner Firebase Auth UID" },
+        "displayName": { "type": "string", "description": "User display name" },
+        "email": { "type": "string", "description": "User email address" },
+        "preferredCurrency": { "type": "string", "description": "ISO currency code e.g. USD" },
+        "openingBalanceMinor": { "type": "integer", "description": "Opening balance in minor currency units (cents)" },
+        "monthlyGoalMinor": { "type": "integer", "description": "Monthly savings/progress target in minor currency units" },
+        "compactMode": { "type": "boolean", "description": "Whether compact layout density is enabled" },
+        "hideAmounts": { "type": "boolean", "description": "Whether sensitive currency amounts are masked" },
+        "themeMode": { "type": "string", "enum": ["LIGHT", "DARK", "SYSTEM"], "description": "App theme preference" },
+        "notificationsEnabled": { "type": "boolean", "description": "Whether budget and goal alerts are enabled" },
+        "budgetAlertThreshold": { "type": "integer", "description": "Default alert threshold percentage (e.g. 80)" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp via FieldValue.serverTimestamp()" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp via FieldValue.serverTimestamp()" }
+      },
+      "required": [
+        "userId",
+        "displayName",
+        "email",
+        "preferredCurrency",
+        "openingBalanceMinor",
+        "monthlyGoalMinor",
+        "compactMode",
+        "hideAmounts",
+        "themeMode",
+        "notificationsEnabled",
+        "budgetAlertThreshold",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "FinancialTransaction": {
+      "title": "FinancialTransaction",
+      "description": "Income, expense, or account transfer record.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner Firebase Auth UID" },
+        "type": { "type": "string", "enum": ["INCOME", "EXPENSE", "TRANSFER"], "description": "Transaction type" },
+        "amountMinor": { "type": "integer", "description": "Positive amount in minor currency units (cents)" },
+        "currency": { "type": "string", "description": "ISO currency code" },
+        "category": { "type": "string", "description": "Category name e.g. Food, Transport, Shopping, Bills, Salary, Goal" },
+        "accountName": { "type": "string", "description": "Source account or wallet name" },
+        "targetAccountName": { "type": "string", "description": "Destination account name for transfers" },
+        "note": { "type": "string", "description": "Optional transaction note" },
+        "merchant": { "type": "string", "description": "Optional merchant or payee name" },
+        "recurring": { "type": "boolean", "description": "Whether this is a recurring transaction" },
+        "frequency": { "type": "string", "enum": ["NONE", "WEEKLY", "MONTHLY", "YEARLY"], "description": "Recurrence frequency" },
+        "occurredAtEpochMillis": { "type": "integer", "description": "Transaction occurrence epoch timestamp in milliseconds" },
+        "goalId": { "type": "string", "description": "Linked goal ID if this transaction is a goal contribution" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp via FieldValue.serverTimestamp()" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp via FieldValue.serverTimestamp()" }
+      },
+      "required": [
+        "userId",
+        "type",
+        "amountMinor",
+        "currency",
+        "category",
+        "accountName",
+        "targetAccountName",
+        "note",
+        "merchant",
+        "recurring",
+        "frequency",
+        "occurredAtEpochMillis",
+        "goalId",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "FinancialGoal": {
+      "title": "FinancialGoal",
+      "description": "Savings or personal milestone goal with progress tracking.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner Firebase Auth UID" },
+        "title": { "type": "string", "description": "Goal title e.g. Travel the World, Buy a House" },
+        "targetMinor": { "type": "integer", "description": "Target amount in minor currency units" },
+        "currentMinor": { "type": "integer", "description": "Current saved amount in minor currency units" },
+        "currency": { "type": "string", "description": "ISO currency code" },
+        "targetDate": { "type": "string", "description": "Optional target date string" },
+        "status": { "type": "string", "enum": ["ACTIVE", "COMPLETED", "PAUSED", "ARCHIVED"], "description": "Goal lifecycle state" },
+        "iconKey": { "type": "string", "description": "Icon identifier e.g. TRAVEL, HOME, CAR, EMERGENCY, EDUCATION, TROPHY" },
+        "notes": { "type": "string", "description": "Optional goal notes or milestone description" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp via FieldValue.serverTimestamp()" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp via FieldValue.serverTimestamp()" }
+      },
+      "required": [
+        "userId",
+        "title",
+        "targetMinor",
+        "currentMinor",
+        "currency",
+        "targetDate",
+        "status",
+        "iconKey",
+        "notes",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "SpendingBudget": {
+      "title": "SpendingBudget",
+      "description": "Overall or category spending budget for a period.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner Firebase Auth UID" },
+        "name": { "type": "string", "description": "Budget title" },
+        "periodType": { "type": "string", "enum": ["WEEKLY", "MONTHLY", "YEARLY"], "description": "Budget period" },
+        "category": { "type": "string", "description": "Target category or ALL for overall budget" },
+        "currency": { "type": "string", "description": "ISO currency code" },
+        "limitMinor": { "type": "integer", "description": "Spending limit in minor currency units" },
+        "rolloverEnabled": { "type": "boolean", "description": "Whether unused budget rolls over" },
+        "alertThresholdPercent": { "type": "integer", "description": "Alert threshold percentage (10-100)" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp via FieldValue.serverTimestamp()" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp via FieldValue.serverTimestamp()" }
+      },
+      "required": [
+        "userId",
+        "name",
+        "periodType",
+        "category",
+        "currency",
+        "limitMinor",
+        "rolloverEnabled",
+        "alertThresholdPercent",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Authenticated user profile and workspace settings."
+    },
+    "/users/{userId}/transactions/{transactionId}": {
+      "schema": "FinancialTransaction",
+      "description": "User-scoped financial transactions (income, expenses, transfers)."
+    },
+    "/users/{userId}/goals/{goalId}": {
+      "schema": "FinancialGoal",
+      "description": "User-scoped financial and personal progress goals."
+    },
+    "/users/{userId}/budgets/{budgetId}": {
+      "schema": "SpendingBudget",
+      "description": "User-scoped overall and category budgets."
+    }
+  }
+}

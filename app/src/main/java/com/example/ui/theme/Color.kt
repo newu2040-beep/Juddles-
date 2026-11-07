@@ -1,0 +1,33 @@
+package com.example.ui.theme
+
+import androidx.compose.ui.graphics.Color
+
+// Juddles Official Design System Tokens (PDF Section 2)
+val JuddlesEvergreen = Color(0xFF075B43)
+val JuddlesEvergreenDeep = Color(0xFF054532)
+val JuddlesFreshGreen = Color(0xFF16845F)
+val JuddlesBrightGreen = Color(0xFF28A979)
+val JuddlesMint = Color(0xFFDDF3E4)
+val JuddlesMintBorder = Color(0xFFC2E7CE)
+val JuddlesIceGreen = Color(0xFFEEF7F2)
+val JuddlesWarmCream = Color(0xFFF7F5EA)
+val JuddlesCardWhite = Color(0xFFFCFBF7)
+val JuddlesPureWhite = Color(0xFFFFFFFF)
+val JuddlesInk = Color(0xFF17231F)
+val JuddlesMuted = Color(0xFF64736B)
+val JuddlesCoral = Color(0xFFE98A68)
+val JuddlesCoralSoft = Color(0xFFFCE8DF)
+val JuddlesBlue = Color(0xFF2276F5)
+val JuddlesBlueSoft = Color(0xFFE3F0FF)
+val JuddlesAmber = Color(0xFFF4A938)
+val JuddlesAmberSoft = Color(0xFFFFF3DC)
+val JuddlesTealSoft = Color(0xFF8CD7B5)
+val JuddlesSageTint = Color(0xFFB7DEC6)
+
+// Dark Mode Tokens (PDF Section 8: carefully tuned dark palette preserving mint/evergreen identity)
+val JuddlesDarkBg = Color(0xFF0D1915)
+val JuddlesDarkSurface = Color(0xFF152620)
+val JuddlesDarkCard = Color(0xFF1B3028)
+val JuddlesDarkMintSurface = Color(0xFF1F3C31)
+val JuddlesDarkInk = Color(0xFFECF6F1)
+val JuddlesDarkMuted = Color(0xFF9EB5AA)

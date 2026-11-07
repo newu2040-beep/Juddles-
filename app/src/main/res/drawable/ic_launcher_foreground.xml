@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Three ascending rounded bars + upward growth trend arrow in Warm Cream & Mint -->
+    <path
+        android:fillColor="#DDF3E4"
+        android:pathData="M33,58 L41,58 C42.1,58 43,58.9 43,60 L43,74 C43,75.1 42.1,76 41,76 L33,76 C31.9,76 31,75.1 31,74 L31,60 C31,58.9 31.9,58 33,58 Z" />
+    <path
+        android:fillColor="#EEF7F2"
+        android:pathData="M50,48 L58,48 C59.1,48 60,48.9 60,50 L60,74 C60,75.1 59.1,76 58,76 L50,76 C48.9,76 48,75.1 48,74 L48,50 C48,48.9 48.9,48 50,48 Z" />
+    <path
+        android:fillColor="#F7F5EA"
+        android:pathData="M67,36 L75,36 C76.1,36 77,36.9 77,38 L77,74 C77,75.1 76.1,76 75,76 L67,76 C65.9,76 65,75.1 65,74 L65,38 C65,36.9 65.9,36 67,36 Z" />
+    <path
+        android:fillColor="#F7F5EA"
+        android:pathData="M32,50 L50,36 L60,41 L74,27 L67,27 L67,23 L81,23 L81,37 L77,37 L77,30 L61,46 L50,41 L35,53 Z" />
+</vector>

@@ -1,0 +1,305 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Pillar 1: Global Default-Deny Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Global Primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidTimestamp(ts) {
+      return ts is timestamp && ts <= request.time;
+    }
+
+    // Validation Blueprint: UserProfile
+    function isValidUserProfile(data) {
+      return data.userId is string &&
+             data.userId == request.auth.uid &&
+             data.userId.size() >= 1 &&
+             data.userId.size() <= 128 &&
+             data.displayName is string &&
+             data.displayName.size() <= 100 &&
+             data.email is string &&
+             data.email.size() <= 200 &&
+             data.preferredCurrency is string &&
+             data.preferredCurrency.size() >= 1 &&
+             data.preferredCurrency.size() <= 10 &&
+             data.openingBalanceMinor is int &&
+             data.openingBalanceMinor >= -100000000000 &&
+             data.openingBalanceMinor <= 100000000000 &&
+             data.monthlyGoalMinor is int &&
+             data.monthlyGoalMinor >= 0 &&
+             data.monthlyGoalMinor <= 100000000000 &&
+             data.compactMode is bool &&
+             data.hideAmounts is bool &&
+             data.themeMode is string &&
+             data.themeMode in ['LIGHT', 'DARK', 'SYSTEM'] &&
+             data.notificationsEnabled is bool &&
+             data.budgetAlertThreshold is int &&
+             data.budgetAlertThreshold >= 10 &&
+             data.budgetAlertThreshold <= 100 &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    // Validation Blueprint: FinancialTransaction
+    function isValidTransaction(data) {
+      return data.userId is string &&
+             data.userId == request.auth.uid &&
+             data.userId.size() >= 1 &&
+             data.userId.size() <= 128 &&
+             data.type is string &&
+             data.type in ['INCOME', 'EXPENSE', 'TRANSFER'] &&
+             data.amountMinor is int &&
+             data.amountMinor > 0 &&
+             data.amountMinor <= 100000000000 &&
+             data.currency is string &&
+             data.currency.size() >= 1 &&
+             data.currency.size() <= 10 &&
+             data.category is string &&
+             data.category.size() >= 1 &&
+             data.category.size() <= 60 &&
+             data.accountName is string &&
+             data.accountName.size() >= 1 &&
+             data.accountName.size() <= 60 &&
+             data.targetAccountName is string &&
+             data.targetAccountName.size() <= 60 &&
+             data.note is string &&
+             data.note.size() <= 300 &&
+             data.merchant is string &&
+             data.merchant.size() <= 100 &&
+             data.recurring is bool &&
+             data.frequency is string &&
+             data.frequency in ['NONE', 'WEEKLY', 'MONTHLY', 'YEARLY'] &&
+             data.occurredAtEpochMillis is int &&
+             data.occurredAtEpochMillis >= 0 &&
+             data.goalId is string &&
+             data.goalId.size() <= 128 &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    // Validation Blueprint: FinancialGoal
+    function isValidGoal(data) {
+      return data.userId is string &&
+             data.userId == request.auth.uid &&
+             data.userId.size() >= 1 &&
+             data.userId.size() <= 128 &&
+             data.title is string &&
+             data.title.size() >= 1 &&
+             data.title.size() <= 100 &&
+             data.targetMinor is int &&
+             data.targetMinor > 0 &&
+             data.targetMinor <= 100000000000 &&
+             data.currentMinor is int &&
+             data.currentMinor >= 0 &&
+             data.currentMinor <= 100000000000 &&
+             data.currency is string &&
+             data.currency.size() >= 1 &&
+             data.currency.size() <= 10 &&
+             data.targetDate is string &&
+             data.targetDate.size() <= 40 &&
+             data.status is string &&
+             data.status in ['ACTIVE', 'COMPLETED', 'PAUSED', 'ARCHIVED'] &&
+             data.iconKey is string &&
+             data.iconKey.size() >= 1 &&
+             data.iconKey.size() <= 40 &&
+             data.notes is string &&
+             data.notes.size() <= 300 &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    // Validation Blueprint: SpendingBudget
+    function isValidBudget(data) {
+      return data.userId is string &&
+             data.userId == request.auth.uid &&
+             data.userId.size() >= 1 &&
+             data.userId.size() <= 128 &&
+             data.name is string &&
+             data.name.size() >= 1 &&
+             data.name.size() <= 100 &&
+             data.periodType is string &&
+             data.periodType in ['WEEKLY', 'MONTHLY', 'YEARLY'] &&
+             data.category is string &&
+             data.category.size() >= 1 &&
+             data.category.size() <= 60 &&
+             data.currency is string &&
+             data.currency.size() >= 1 &&
+             data.currency.size() <= 10 &&
+             data.limitMinor is int &&
+             data.limitMinor > 0 &&
+             data.limitMinor <= 100000000000 &&
+             data.rolloverEnabled is bool &&
+             data.alertThresholdPercent is int &&
+             data.alertThresholdPercent >= 10 &&
+             data.alertThresholdPercent <= 100 &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    match /users/{userId} {
+      allow get: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
+      allow list: if isSignedIn() && request.auth.uid == userId && resource.data.userId == request.auth.uid;
+
+      allow create: if isSignedIn() &&
+                       isValidId(userId) &&
+                       request.auth.uid == userId &&
+                       incoming().keys().hasAll([
+                         'userId', 'displayName', 'email', 'preferredCurrency',
+                         'openingBalanceMinor', 'monthlyGoalMinor', 'compactMode',
+                         'hideAmounts', 'themeMode', 'notificationsEnabled',
+                         'budgetAlertThreshold', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'displayName', 'email', 'preferredCurrency',
+                         'openingBalanceMinor', 'monthlyGoalMinor', 'compactMode',
+                         'hideAmounts', 'themeMode', 'notificationsEnabled',
+                         'budgetAlertThreshold', 'createdAt', 'updatedAt'
+                       ]) &&
+                       isValidUserProfile(incoming());
+
+      allow update: if isSignedIn() &&
+                       isValidId(userId) &&
+                       request.auth.uid == userId &&
+                       isValidUserProfile(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'displayName', 'email', 'preferredCurrency',
+                         'openingBalanceMinor', 'monthlyGoalMinor', 'compactMode',
+                         'hideAmounts', 'themeMode', 'notificationsEnabled',
+                         'budgetAlertThreshold', 'updatedAt'
+                       ]);
+
+      allow delete: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
+
+      match /transactions/{transactionId} {
+        allow get: if isSignedIn() && isValidId(userId) && isValidId(transactionId) && request.auth.uid == userId && resource.data.userId == request.auth.uid;
+        allow list: if isSignedIn() && request.auth.uid == userId && resource.data.userId == request.auth.uid;
+
+        allow create: if isSignedIn() &&
+                         isValidId(userId) &&
+                         isValidId(transactionId) &&
+                         request.auth.uid == userId &&
+                         incoming().keys().hasAll([
+                           'userId', 'type', 'amountMinor', 'currency', 'category',
+                           'accountName', 'targetAccountName', 'note', 'merchant',
+                           'recurring', 'frequency', 'occurredAtEpochMillis',
+                           'goalId', 'createdAt', 'updatedAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'userId', 'type', 'amountMinor', 'currency', 'category',
+                           'accountName', 'targetAccountName', 'note', 'merchant',
+                           'recurring', 'frequency', 'occurredAtEpochMillis',
+                           'goalId', 'createdAt', 'updatedAt'
+                         ]) &&
+                         isValidTransaction(incoming());
+
+        allow update: if isSignedIn() &&
+                         isValidId(userId) &&
+                         isValidId(transactionId) &&
+                         request.auth.uid == userId &&
+                         isValidTransaction(incoming()) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'type', 'amountMinor', 'currency', 'category',
+                           'accountName', 'targetAccountName', 'note', 'merchant',
+                           'recurring', 'frequency', 'occurredAtEpochMillis',
+                           'goalId', 'updatedAt'
+                         ]);
+
+        allow delete: if isSignedIn() && isValidId(userId) && isValidId(transactionId) && request.auth.uid == userId && resource.data.userId == request.auth.uid;
+      }
+
+      match /goals/{goalId} {
+        allow get: if isSignedIn() && isValidId(userId) && isValidId(goalId) && request.auth.uid == userId && resource.data.userId == request.auth.uid;
+        allow list: if isSignedIn() && request.auth.uid == userId && resource.data.userId == request.auth.uid;
+
+        allow create: if isSignedIn() &&
+                         isValidId(userId) &&
+                         isValidId(goalId) &&
+                         request.auth.uid == userId &&
+                         incoming().keys().hasAll([
+                           'userId', 'title', 'targetMinor', 'currentMinor',
+                           'currency', 'targetDate', 'status', 'iconKey',
+                           'notes', 'createdAt', 'updatedAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'userId', 'title', 'targetMinor', 'currentMinor',
+                           'currency', 'targetDate', 'status', 'iconKey',
+                           'notes', 'createdAt', 'updatedAt'
+                         ]) &&
+                         isValidGoal(incoming());
+
+        allow update: if isSignedIn() &&
+                         isValidId(userId) &&
+                         isValidId(goalId) &&
+                         request.auth.uid == userId &&
+                         isValidGoal(incoming()) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'title', 'targetMinor', 'currentMinor',
+                           'currency', 'targetDate', 'status', 'iconKey',
+                           'notes', 'updatedAt'
+                         ]);
+
+        allow delete: if isSignedIn() && isValidId(userId) && isValidId(goalId) && request.auth.uid == userId && resource.data.userId == request.auth.uid;
+      }
+
+      match /budgets/{budgetId} {
+        allow get: if isSignedIn() && isValidId(userId) && isValidId(budgetId) && request.auth.uid == userId && resource.data.userId == request.auth.uid;
+        allow list: if isSignedIn() && request.auth.uid == userId && resource.data.userId == request.auth.uid;
+
+        allow create: if isSignedIn() &&
+                         isValidId(userId) &&
+                         isValidId(budgetId) &&
+                         request.auth.uid == userId &&
+                         incoming().keys().hasAll([
+                           'userId', 'name', 'periodType', 'category',
+                           'currency', 'limitMinor', 'rolloverEnabled',
+                           'alertThresholdPercent', 'createdAt', 'updatedAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'userId', 'name', 'periodType', 'category',
+                           'currency', 'limitMinor', 'rolloverEnabled',
+                           'alertThresholdPercent', 'createdAt', 'updatedAt'
+                         ]) &&
+                         isValidBudget(incoming());
+
+        allow update: if isSignedIn() &&
+                         isValidId(userId) &&
+                         isValidId(budgetId) &&
+                         request.auth.uid == userId &&
+                         isValidBudget(incoming()) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'name', 'periodType', 'category',
+                           'currency', 'limitMinor', 'rolloverEnabled',
+                           'alertThresholdPercent', 'updatedAt'
+                         ]);
+
+        allow delete: if isSignedIn() && isValidId(userId) && isValidId(budgetId) && request.auth.uid == userId && resource.data.userId == request.auth.uid;
+      }
+    }
+  }
+}

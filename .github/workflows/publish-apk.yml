@@ -1,0 +1,106 @@
+name: Publish Debug APK Release
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - "apk-distribution/app-debug.apk"
+      - "apk-distribution/app-debug.apk.sha256"
+      - ".github/workflows/publish-apk.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish-apk:
+    name: Validate and Publish Existing Debug APK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate APK and SHA-256 checksum
+        id: verify
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK_PATH="apk-distribution/app-debug.apk"
+          SHA_PATH="apk-distribution/app-debug.apk.sha256"
+
+          if [ ! -f "$APK_PATH" ]; then
+            echo "ERROR: $APK_PATH does not exist." >&2
+            exit 1
+          fi
+
+          if [ ! -s "$APK_PATH" ]; then
+            echo "ERROR: $APK_PATH is empty." >&2
+            exit 1
+          fi
+
+          if [ ! -f "$SHA_PATH" ]; then
+            echo "ERROR: $SHA_PATH does not exist." >&2
+            exit 1
+          fi
+
+          RECORDED_SHA=$(awk '{print $1}' "$SHA_PATH")
+          ACTUAL_SHA=$(sha256sum "$APK_PATH" | awk '{print $1}')
+
+          if [ -z "$RECORDED_SHA" ] || [ "$RECORDED_SHA" != "$ACTUAL_SHA" ]; then
+            echo "ERROR: SHA-256 mismatch! Recorded: $RECORDED_SHA, Actual: $ACTUAL_SHA" >&2
+            exit 1
+          fi
+
+          unzip -tq "$APK_PATH"
+
+          APK_SIZE_BYTES=$(stat -c%s "$APK_PATH")
+          APK_SIZE_HUMAN=$(du -h "$APK_PATH" | awk '{print $1}')
+
+          echo "sha256=$ACTUAL_SHA" >> "$GITHUB_OUTPUT"
+          echo "size_bytes=$APK_SIZE_BYTES" >> "$GITHUB_OUTPUT"
+          echo "size_human=$APK_SIZE_HUMAN" >> "$GITHUB_OUTPUT"
+
+      - name: Publish GitHub Release
+        id: release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA256: ${{ steps.verify.outputs.sha256 }}
+          SIZE_HUMAN: ${{ steps.verify.outputs.size_human }}
+          SIZE_BYTES: ${{ steps.verify.outputs.size_bytes }}
+        run: |
+          set -euo pipefail
+          TAG="debug-apk-build-${GITHUB_RUN_NUMBER}-${GITHUB_RUN_ATTEMPT}"
+          TITLE="Debug APK Build #${GITHUB_RUN_NUMBER} (Attempt ${GITHUB_RUN_ATTEMPT})"
+          NOTES=$(cat <<EOF
+          Pre-compiled Android Debug APK built inside Google AI Studio.
+
+          - **Asset**: \`app-debug.apk\`
+          - **Size**: ${SIZE_HUMAN} (${SIZE_BYTES} bytes)
+          - **SHA-256**: \`${SHA256}\`
+          EOF
+          )
+
+          gh release create "$TAG" "apk-distribution/app-debug.apk#app-debug.apk" \
+            --title "$TITLE" \
+            --notes "$NOTES" \
+            --latest
+
+          RELEASE_URL="https://github.com/${GITHUB_REPOSITORY}/releases/tag/${TAG}"
+          LATEST_DOWNLOAD_URL="https://github.com/${GITHUB_REPOSITORY}/releases/latest/download/app-debug.apk"
+
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "release_url=$RELEASE_URL" >> "$GITHUB_OUTPUT"
+          echo "download_url=$LATEST_DOWNLOAD_URL" >> "$GITHUB_OUTPUT"
+
+          {
+            echo "## Android Debug APK Published"
+            echo ""
+            echo "- **Release Tag**: \`${TAG}\`"
+            echo "- **APK Size**: ${SIZE_HUMAN} (${SIZE_BYTES} bytes)"
+            echo "- **SHA-256 Checksum**: \`${SHA256}\`"
+            echo "- **GitHub Release Page**: ${RELEASE_URL}"
+            echo "- **Direct Latest APK Download URL**: ${LATEST_DOWNLOAD_URL}"
+          } >> "$GITHUB_STEP_SUMMARY"

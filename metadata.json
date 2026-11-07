@@ -1,0 +1,6 @@
+{
+  "name": "Juddles",
+  "description": "Track, plan, and grow your personal finances, budgets, goals, and cash flow.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
