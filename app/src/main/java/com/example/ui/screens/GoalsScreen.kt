@@ -21,10 +21,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBackIos
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.BeachAccess
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Computer
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FlightTakeoff
+import androidx.compose.material.icons.filled.HealthAndSafety
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Savings
@@ -68,13 +72,14 @@ import com.example.ui.theme.JuddlesBrightGreen
 import com.example.ui.theme.JuddlesCoral
 import com.example.ui.theme.JuddlesCoralSoft
 import com.example.ui.theme.JuddlesEvergreen
-import com.example.ui.theme.JuddlesFreshGreen
 import com.example.ui.theme.JuddlesIceGreen
-import com.example.ui.theme.JuddlesMint
+import com.example.ui.theme.LocalCompactMode
+import com.example.ui.theme.LocalJuddlesDimensions
 import com.example.ui.viewmodel.JuddlesDashboardState
 
 /**
- * Screen 3 — Goals Screen matching the third screen in the reference mockup.
+ * Screen 3 — Goals Screen matching the third screen in the reference mockup,
+ * with Compact Mode, Multi-Theme, and 10 Goal Icon Categories.
  */
 @Composable
 fun GoalsScreen(
@@ -89,6 +94,10 @@ fun GoalsScreen(
   var filterStatus by remember { mutableStateOf("ALL") } // ALL, ACTIVE, COMPLETED
   val currency = state.profile.preferredCurrency
   val hide = state.profile.hideAmounts
+  val compact = LocalCompactMode.current || state.profile.compactMode
+  val dims = LocalJuddlesDimensions.current
+  val primaryColor = MaterialTheme.colorScheme.primary
+  val primaryContainer = MaterialTheme.colorScheme.primaryContainer
 
   val filteredGoals = remember(state.goals, filterStatus) {
     when (filterStatus) {
@@ -101,13 +110,13 @@ fun GoalsScreen(
   LazyColumn(
     modifier = modifier.fillMaxSize(),
     contentPadding = PaddingValues(
-      start = 20.dp,
-      end = 20.dp,
-      top = 12.dp,
-      bottom = 104.dp
+      start = dims.screenHorizontalPadding,
+      end = dims.screenHorizontalPadding,
+      top = dims.screenTopPadding,
+      bottom = if (compact) 86.dp else 104.dp
     ),
     horizontalAlignment = Alignment.CenterHorizontally,
-    verticalArrangement = Arrangement.spacedBy(14.dp)
+    verticalArrangement = Arrangement.spacedBy(dims.sectionSpacing)
   ) {
     // 1. Top Navigation Row (< Back & Overflow Menu ⋮)
     item {
@@ -118,7 +127,7 @@ fun GoalsScreen(
       ) {
         Surface(
           modifier = Modifier
-            .size(44.dp)
+            .size(48.dp)
             .clip(CircleShape)
             .clickable(onClick = onBackClick)
             .testTag("goals_back_button"),
@@ -141,7 +150,7 @@ fun GoalsScreen(
         Box {
           Surface(
             modifier = Modifier
-              .size(44.dp)
+              .size(48.dp)
               .clip(CircleShape)
               .clickable { showOverflowMenu = true }
               .testTag("goals_menu_button"),
@@ -202,16 +211,16 @@ fun GoalsScreen(
         modifier = Modifier.fillMaxWidth()
       ) {
         TargetBullseyeIllustration()
-        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(modifier = Modifier.height(if (compact) 2.dp else 6.dp))
         Text(
           text = "Goals",
           style = MaterialTheme.typography.displayMedium.copy(
             fontWeight = FontWeight.Bold,
-            fontSize = 30.sp
+            fontSize = if (compact) 26.sp else 30.sp
           ),
           color = MaterialTheme.colorScheme.onBackground
         )
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(if (compact) 2.dp else 4.dp))
         Text(
           text = "Turn your dreams into goals",
           style = MaterialTheme.typography.bodyMedium,
@@ -220,18 +229,18 @@ fun GoalsScreen(
       }
     }
 
-    // 3. Primary Pill Button: "+ Create New Goal" (#075B43 Evergreen)
+    // 3. Primary Pill Button: "+ Create New Goal"
     item {
       Button(
         onClick = onCreateNewGoalClick,
         shape = RoundedCornerShape(28.dp),
         colors = ButtonDefaults.buttonColors(
-          containerColor = JuddlesEvergreen,
-          contentColor = Color.White
+          containerColor = primaryColor,
+          contentColor = MaterialTheme.colorScheme.onPrimary
         ),
         modifier = Modifier
           .fillMaxWidth()
-          .height(54.dp)
+          .height(if (compact) 48.dp else 54.dp)
           .shadow(8.dp, RoundedCornerShape(28.dp))
           .testTag("create_new_goal_button")
       ) {
@@ -252,7 +261,7 @@ fun GoalsScreen(
     if (filteredGoals.isEmpty()) {
       item {
         Surface(
-          shape = RoundedCornerShape(22.dp),
+          shape = RoundedCornerShape(dims.cardCornerRadius),
           color = MaterialTheme.colorScheme.surface,
           tonalElevation = 2.dp,
           modifier = Modifier.fillMaxWidth()
@@ -260,7 +269,7 @@ fun GoalsScreen(
           Column(
             modifier = Modifier
               .fillMaxWidth()
-              .padding(24.dp),
+              .padding(dims.cardInnerHorizontalPadding),
             horizontalAlignment = Alignment.CenterHorizontally
           ) {
             Text(
@@ -284,6 +293,7 @@ fun GoalsScreen(
           goal = goal,
           currency = currency,
           hideAmounts = hide,
+          compact = compact,
           onClick = { onGoalClick(goal) }
         )
       }
@@ -292,8 +302,8 @@ fun GoalsScreen(
     // 5. Bottom Motivational Banner Card ("You're on track! Keep going to achieve more.")
     item {
       Surface(
-        shape = RoundedCornerShape(22.dp),
-        color = JuddlesMint,
+        shape = RoundedCornerShape(dims.cardCornerRadius),
+        color = primaryContainer,
         shadowElevation = 2.dp,
         modifier = Modifier
           .fillMaxWidth()
@@ -302,13 +312,16 @@ fun GoalsScreen(
         Row(
           modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 16.dp),
+            .padding(
+              horizontal = dims.cardInnerHorizontalPadding,
+              vertical = dims.cardInnerVerticalPadding
+            ),
           verticalAlignment = Alignment.CenterVertically,
           horizontalArrangement = Arrangement.Center
         ) {
           Box(
             modifier = Modifier
-              .size(46.dp)
+              .size(if (compact) 40.dp else 46.dp)
               .clip(CircleShape)
               .background(JuddlesAmberSoft),
             contentAlignment = Alignment.Center
@@ -317,7 +330,7 @@ fun GoalsScreen(
               imageVector = Icons.Default.EmojiEvents,
               contentDescription = "Trophy",
               tint = JuddlesAmber,
-              modifier = Modifier.size(28.dp)
+              modifier = Modifier.size(if (compact) 24.dp else 28.dp)
             )
           }
           Spacer(modifier = Modifier.width(14.dp))
@@ -344,10 +357,13 @@ private fun GoalCardItem(
   goal: FinancialGoal,
   currency: String,
   hideAmounts: Boolean,
+  compact: Boolean,
   onClick: () -> Unit
 ) {
   val percent = FinancialCalculator.goalProgressPercent(goal.currentMinor, goal.targetMinor)
   val isComplete = percent >= 100 || goal.status == "COMPLETED"
+  val primaryColor = MaterialTheme.colorScheme.primary
+  val primaryContainer = MaterialTheme.colorScheme.primaryContainer
 
   val (iconVec, iconBg, iconTint) = when (goal.iconKey.uppercase()) {
     "TRAVEL" -> Triple(Icons.Default.FlightTakeoff, JuddlesBlueSoft, JuddlesBlue)
@@ -355,33 +371,41 @@ private fun GoalCardItem(
     "CAR" -> Triple(Icons.Default.DirectionsCar, JuddlesBlueSoft, JuddlesBlue)
     "EDUCATION" -> Triple(Icons.Default.School, JuddlesAmberSoft, JuddlesAmber)
     "TROPHY" -> Triple(Icons.Default.EmojiEvents, JuddlesAmberSoft, JuddlesAmber)
+    "TECH" -> Triple(Icons.Default.Computer, Color(0xFFEDE9FE), Color(0xFF7C3AED))
+    "HEALTH" -> Triple(Icons.Default.HealthAndSafety, Color(0xFFFCE7F3), Color(0xFFDB2777))
+    "WEDDING" -> Triple(Icons.Default.Favorite, Color(0xFFFFE4E6), Color(0xFFE11D48))
+    "RETIREMENT" -> Triple(Icons.Default.BeachAccess, JuddlesAmberSoft, Color(0xFFD97706))
     else -> Triple(Icons.Default.Savings, JuddlesIceGreen, JuddlesEvergreen)
   }
+
+  val cornerRadius = if (compact) 16.dp else 22.dp
 
   Surface(
     modifier = Modifier
       .fillMaxWidth()
       .shadow(
         elevation = 6.dp,
-        shape = RoundedCornerShape(22.dp),
+        shape = RoundedCornerShape(cornerRadius),
         ambientColor = Color.Black.copy(alpha = 0.08f)
       )
-      .clip(RoundedCornerShape(22.dp))
+      .clip(RoundedCornerShape(cornerRadius))
       .clickable(onClick = onClick)
       .testTag("goal_card_${goal.title}"),
-    shape = RoundedCornerShape(22.dp),
+    shape = RoundedCornerShape(cornerRadius),
     color = MaterialTheme.colorScheme.surface
   ) {
     Row(
       modifier = Modifier
         .fillMaxWidth()
-        .padding(horizontal = 16.dp, vertical = 16.dp),
+        .padding(
+          horizontal = if (compact) 12.dp else 16.dp,
+          vertical = if (compact) 10.dp else 16.dp
+        ),
       verticalAlignment = Alignment.CenterVertically
     ) {
-      // Left Icon Badge
       Box(
         modifier = Modifier
-          .size(54.dp)
+          .size(if (compact) 44.dp else 54.dp)
           .clip(CircleShape)
           .background(iconBg),
         contentAlignment = Alignment.Center
@@ -390,26 +414,25 @@ private fun GoalCardItem(
           imageVector = iconVec,
           contentDescription = goal.title,
           tint = iconTint,
-          modifier = Modifier.size(28.dp)
+          modifier = Modifier.size(if (compact) 22.dp else 28.dp)
         )
       }
 
-      Spacer(modifier = Modifier.width(14.dp))
+      Spacer(modifier = Modifier.width(if (compact) 10.dp else 14.dp))
 
-      // Middle: Title, "$Current / $Target", Slim Horizontal Progress Bar
       Column(modifier = Modifier.weight(1f)) {
         Text(
           text = goal.title,
           style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
           color = MaterialTheme.colorScheme.onSurface
         )
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(if (compact) 2.dp else 4.dp))
         Text(
           text = buildAnnotatedString {
             withStyle(
               SpanStyle(
                 fontWeight = FontWeight.Bold,
-                color = if (isComplete) JuddlesEvergreen else MaterialTheme.colorScheme.onSurface
+                color = if (isComplete) primaryColor else MaterialTheme.colorScheme.onSurface
               )
             ) {
               append(
@@ -436,34 +459,33 @@ private fun GoalCardItem(
           },
           style = MaterialTheme.typography.bodyMedium
         )
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(if (compact) 6.dp else 10.dp))
         LinearProgressIndicator(
           progress = { (percent / 100f).coerceIn(0f, 1f) },
           modifier = Modifier
             .fillMaxWidth()
-            .height(8.dp)
+            .height(if (compact) 6.dp else 8.dp)
             .clip(RoundedCornerShape(4.dp)),
           color = JuddlesBrightGreen,
-          trackColor = JuddlesMint,
+          trackColor = primaryContainer,
           strokeCap = StrokeCap.Round
         )
       }
 
-      Spacer(modifier = Modifier.width(14.dp))
+      Spacer(modifier = Modifier.width(if (compact) 10.dp else 14.dp))
 
-      // Right: Evergreen Checkmark Circle if 100%, or bold percentage text (50%, 33%)
       if (isComplete) {
         Box(
           modifier = Modifier
             .size(30.dp)
             .clip(CircleShape)
-            .background(JuddlesEvergreen),
+            .background(primaryColor),
           contentAlignment = Alignment.Center
         ) {
           Icon(
             imageVector = Icons.Default.Check,
             contentDescription = "Goal completed",
-            tint = Color.White,
+            tint = MaterialTheme.colorScheme.onPrimary,
             modifier = Modifier.size(18.dp)
           )
         }

@@ -2,7 +2,7 @@ package com.example.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Juddles Official Design System Tokens (PDF Section 2)
+// Juddles Official Design System Tokens (PDF Section 2 — Mint & Evergreen Signature)
 val JuddlesEvergreen = Color(0xFF075B43)
 val JuddlesEvergreenDeep = Color(0xFF054532)
 val JuddlesFreshGreen = Color(0xFF16845F)
@@ -24,10 +24,97 @@ val JuddlesAmberSoft = Color(0xFFFFF3DC)
 val JuddlesTealSoft = Color(0xFF8CD7B5)
 val JuddlesSageTint = Color(0xFFB7DEC6)
 
-// Dark Mode Tokens (PDF Section 8: carefully tuned dark palette preserving mint/evergreen identity)
+// Dark Mode Tokens (Evergreen Night)
 val JuddlesDarkBg = Color(0xFF0D1915)
 val JuddlesDarkSurface = Color(0xFF152620)
 val JuddlesDarkCard = Color(0xFF1B3028)
 val JuddlesDarkMintSurface = Color(0xFF1F3C31)
 val JuddlesDarkInk = Color(0xFFECF6F1)
 val JuddlesDarkMuted = Color(0xFF9EB5AA)
+
+// Ocean Breeze Theme Tokens
+val OceanPrimary = Color(0xFF0A4D68)
+val OceanSecondary = Color(0xFF088395)
+val OceanBright = Color(0xFF05BFDB)
+val OceanBg = Color(0xFFF1F8FB)
+val OceanCard = Color(0xFFFAFDFF)
+val OceanSoft = Color(0xFFDDF2F9)
+val OceanInk = Color(0xFF0F2530)
+val OceanMuted = Color(0xFF536F7D)
+
+// Warm Terracotta Sunset Theme Tokens
+val SunsetPrimary = Color(0xFF8C3B2B)
+val SunsetSecondary = Color(0xFFC85A32)
+val SunsetBright = Color(0xFFE98A68)
+val SunsetBg = Color(0xFFFAF3EE)
+val SunsetCard = Color(0xFFFFFBF8)
+val SunsetSoft = Color(0xFFF9E4D8)
+val SunsetInk = Color(0xFF2B1812)
+val SunsetMuted = Color(0xFF7A5B50)
+
+// Royal Lavender Botanical Theme Tokens
+val LavenderPrimary = Color(0xFF4B3869)
+val LavenderSecondary = Color(0xFF6B4F9E)
+val LavenderBright = Color(0xFF9D7BD8)
+val LavenderBg = Color(0xFFF6F3FA)
+val LavenderCard = Color(0xFFFCFAFF)
+val LavenderSoft = Color(0xFFE9E0F7)
+val LavenderInk = Color(0xFF21192E)
+val LavenderMuted = Color(0xFF6A5E7D)
+
+// Midnight Gold Theme Tokens
+val MidnightPrimary = Color(0xFFD4AF37)
+val MidnightSecondary = Color(0xFF28A979)
+val MidnightBg = Color(0xFF0F141C)
+val MidnightSurface = Color(0xFF171F2C)
+val MidnightCard = Color(0xFF1E293B)
+val MidnightSoft = Color(0xFF293548)
+val MidnightInk = Color(0xFFF8FAFC)
+val MidnightMuted = Color(0xFF94A3B8)
+
+// Sakura Blossom Theme Tokens
+val SakuraPrimary = Color(0xFF9D174D)
+val SakuraSecondary = Color(0xFFDB2777)
+val SakuraBg = Color(0xFFFFF5F7)
+val SakuraCard = Color(0xFFFFFAFC)
+val SakuraSoft = Color(0xFFFCE7F3)
+val SakuraInk = Color(0xFF33101E)
+val SakuraMuted = Color(0xFF835265)
+
+// Neon Cyberpunk Theme Tokens
+val CyberPrimary = Color(0xFF00F0FF)
+val CyberSecondary = Color(0xFFFF2A85)
+val CyberBg = Color(0xFF0B0719)
+val CyberSurface = Color(0xFF140E2E)
+val CyberCard = Color(0xFF1C143D)
+val CyberSoft = Color(0xFF2A1E5C)
+val CyberInk = Color(0xFFF0F9FF)
+val CyberMuted = Color(0xFFA5B4FC)
+
+// Espresso Coffee Theme Tokens
+val CoffeePrimary = Color(0xFF4A2C11)
+val CoffeeSecondary = Color(0xFF7C4D25)
+val CoffeeBg = Color(0xFFF8F4F0)
+val CoffeeCard = Color(0xFFFFFDFB)
+val CoffeeSoft = Color(0xFFEDE0D4)
+val CoffeeInk = Color(0xFF26170A)
+val CoffeeMuted = Color(0xFF6E5644)
+
+// Nordic Frost Theme Tokens
+val NordicPrimary = Color(0xFF1E3A5F)
+val NordicSecondary = Color(0xFF3B6998)
+val NordicBg = Color(0xFFF2F5F8)
+val NordicCard = Color(0xFFFAFCFF)
+val NordicSoft = Color(0xFFDCE6F2)
+val NordicInk = Color(0xFF102033)
+val NordicMuted = Color(0xFF5A6F85)
+
+// Pure AMOLED Black Theme Tokens
+val AmoledPrimary = Color(0xFF2EE59D)
+val AmoledSecondary = Color(0xFF16845F)
+val AmoledBg = Color(0xFF000000)
+val AmoledSurface = Color(0xFF0A0F0D)
+val AmoledCard = Color(0xFF111916)
+val AmoledSoft = Color(0xFF182821)
+val AmoledInk = Color(0xFFFFFFFF)
+val AmoledMuted = Color(0xFF9CA3AF)

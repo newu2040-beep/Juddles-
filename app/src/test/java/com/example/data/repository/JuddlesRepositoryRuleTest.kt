@@ -135,6 +135,19 @@ class JuddlesRepositoryRuleTest : FirestoreEmulatorTestBase() {
     assertEquals(100, FinancialCalculator.goalProgressPercent(350000L, 300000L))
     assertEquals(75, FinancialCalculator.budgetUsagePercent(200000L, 150000L))
     assertEquals(50000L, FinancialCalculator.budgetRemainingMinor(200000L, 150000L))
+
+    val state = com.example.ui.viewmodel.JuddlesDashboardState(
+      isLoading = false,
+      transactions = txs
+    )
+    val csv = com.example.util.ReportExportManager.generateCsvString(state)
+    val txt = com.example.util.ReportExportManager.generateTxtString(state)
+    val md = com.example.util.ReportExportManager.generateMarkdownString(state)
+    val pdfBytes = com.example.util.ReportExportManager.generatePdfBytes(state)
+    assertTrue(csv.contains("Total Balance"))
+    assertTrue(txt.contains("JUDDLES FINANCIAL STATEMENT"))
+    assertTrue(md.contains("# Juddles Financial Report"))
+    assertTrue(pdfBytes.isNotEmpty())
   }
 
   private companion object {

@@ -13,7 +13,7 @@
         "monthlyGoalMinor": { "type": "integer", "description": "Monthly savings/progress target in minor currency units" },
         "compactMode": { "type": "boolean", "description": "Whether compact layout density is enabled" },
         "hideAmounts": { "type": "boolean", "description": "Whether sensitive currency amounts are masked" },
-        "themeMode": { "type": "string", "enum": ["LIGHT", "DARK", "SYSTEM"], "description": "App theme preference" },
+        "themeMode": { "type": "string", "enum": ["LIGHT", "DARK", "SYSTEM", "OCEAN", "SUNSET", "LAVENDER", "MIDNIGHT", "SAKURA", "CYBERPUNK", "COFFEE", "NORDIC", "AMOLED"], "description": "App theme preference" },
         "notificationsEnabled": { "type": "boolean", "description": "Whether budget and goal alerts are enabled" },
         "budgetAlertThreshold": { "type": "integer", "description": "Default alert threshold percentage (e.g. 80)" },
         "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp via FieldValue.serverTimestamp()" },

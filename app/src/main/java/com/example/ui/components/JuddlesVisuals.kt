@@ -5,7 +5,6 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -70,11 +69,10 @@ import com.example.ui.theme.JuddlesBrightGreen
 import com.example.ui.theme.JuddlesCoral
 import com.example.ui.theme.JuddlesEvergreen
 import com.example.ui.theme.JuddlesFreshGreen
-import com.example.ui.theme.JuddlesIceGreen
-import com.example.ui.theme.JuddlesInk
 import com.example.ui.theme.JuddlesMint
 import com.example.ui.theme.JuddlesMuted
 import com.example.ui.theme.JuddlesTealSoft
+import com.example.ui.theme.LocalCompactMode
 import kotlin.math.max
 
 enum class MainNavTab(val label: String) {
@@ -85,7 +83,7 @@ enum class MainNavTab(val label: String) {
 }
 
 /**
- * Warm cream canvas background with soft organic mint/sage radial accents matching the 5-screen mockup.
+ * Canvas background with soft organic radial accents that adapt to the active theme.
  */
 @Composable
 fun JuddlesBackgroundWrapper(
@@ -93,46 +91,48 @@ fun JuddlesBackgroundWrapper(
   content: @Composable () -> Unit
 ) {
   val bgColor = MaterialTheme.colorScheme.background
-  val isLight = bgColor.red > 0.5f
+  val primaryContainer = MaterialTheme.colorScheme.primaryContainer
+  val secondary = MaterialTheme.colorScheme.secondary
+  val isLight = bgColor.red > 0.45f
 
   Box(
     modifier = modifier
       .fillMaxSize()
       .background(bgColor)
   ) {
-    if (isLight) {
-      Canvas(modifier = Modifier.fillMaxSize()) {
-        // Top-right organic mint wave glow
-        drawCircle(
-          brush = Brush.radialGradient(
-            colors = listOf(Color(0xFF9BE2B6).copy(alpha = 0.42f), Color.Transparent),
-            center = Offset(size.width * 0.88f, size.height * 0.04f),
-            radius = size.width * 0.55f
-          ),
+    Canvas(modifier = Modifier.fillMaxSize()) {
+      val topAlpha = if (isLight) 0.48f else 0.22f
+      val midAlpha = if (isLight) 0.35f else 0.16f
+      // Top-right organic wave glow
+      drawCircle(
+        brush = Brush.radialGradient(
+          colors = listOf(secondary.copy(alpha = topAlpha * 0.65f), Color.Transparent),
           center = Offset(size.width * 0.88f, size.height * 0.04f),
           radius = size.width * 0.55f
-        )
-        // Left-middle subtle sage orb
-        drawCircle(
-          brush = Brush.radialGradient(
-            colors = listOf(Color(0xFFC5ECD3).copy(alpha = 0.35f), Color.Transparent),
-            center = Offset(size.width * 0.05f, size.height * 0.36f),
-            radius = size.width * 0.42f
-          ),
+        ),
+        center = Offset(size.width * 0.88f, size.height * 0.04f),
+        radius = size.width * 0.55f
+      )
+      // Left-middle subtle orb
+      drawCircle(
+        brush = Brush.radialGradient(
+          colors = listOf(primaryContainer.copy(alpha = midAlpha), Color.Transparent),
           center = Offset(size.width * 0.05f, size.height * 0.36f),
           radius = size.width * 0.42f
-        )
-        // Bottom-right soft mint glow
-        drawCircle(
-          brush = Brush.radialGradient(
-            colors = listOf(Color(0xFFDDF3E4).copy(alpha = 0.5f), Color.Transparent),
-            center = Offset(size.width * 0.85f, size.height * 0.88f),
-            radius = size.width * 0.5f
-          ),
+        ),
+        center = Offset(size.width * 0.05f, size.height * 0.36f),
+        radius = size.width * 0.42f
+      )
+      // Bottom-right soft glow
+      drawCircle(
+        brush = Brush.radialGradient(
+          colors = listOf(primaryContainer.copy(alpha = topAlpha), Color.Transparent),
           center = Offset(size.width * 0.85f, size.height * 0.88f),
           radius = size.width * 0.5f
-        )
-      }
+        ),
+        center = Offset(size.width * 0.85f, size.height * 0.88f),
+        radius = size.width * 0.5f
+      )
     }
     content()
   }
@@ -147,7 +147,6 @@ fun JuddlesBrandHeader(modifier: Modifier = Modifier) {
     modifier = modifier,
     horizontalAlignment = Alignment.CenterHorizontally
   ) {
-    // Rising 3-bar icon + upward arrow
     Canvas(
       modifier = Modifier
         .size(56.dp)
@@ -155,28 +154,24 @@ fun JuddlesBrandHeader(modifier: Modifier = Modifier) {
     ) {
       val w = size.width
       val h = size.height
-      // Bar 1
       drawRoundRect(
         color = Color(0xFF60C892),
         topLeft = Offset(w * 0.18f, h * 0.56f),
         size = Size(w * 0.15f, h * 0.32f),
         cornerRadius = CornerRadius(6f, 6f)
       )
-      // Bar 2
       drawRoundRect(
         color = JuddlesFreshGreen,
         topLeft = Offset(w * 0.42f, h * 0.40f),
         size = Size(w * 0.15f, h * 0.48f),
         cornerRadius = CornerRadius(6f, 6f)
       )
-      // Bar 3
       drawRoundRect(
         color = JuddlesEvergreen,
         topLeft = Offset(w * 0.66f, h * 0.22f),
         size = Size(w * 0.15f, h * 0.66f),
         cornerRadius = CornerRadius(6f, 6f)
       )
-      // Upward trend arrow
       val arrowPath = Path().apply {
         moveTo(w * 0.16f, h * 0.46f)
         lineTo(w * 0.44f, h * 0.26f)
@@ -188,7 +183,6 @@ fun JuddlesBrandHeader(modifier: Modifier = Modifier) {
         color = JuddlesEvergreen,
         style = Stroke(width = 6.5f, cap = StrokeCap.Round, join = StrokeJoin.Round)
       )
-      // Arrow head
       val headPath = Path().apply {
         moveTo(w * 0.64f, h * 0.10f)
         lineTo(w * 0.80f, h * 0.10f)
@@ -217,7 +211,7 @@ fun JuddlesBrandHeader(modifier: Modifier = Modifier) {
         fontWeight = FontWeight.SemiBold,
         letterSpacing = 0.4.sp
       ),
-      color = JuddlesEvergreen
+      color = MaterialTheme.colorScheme.primary
     )
   }
 }
@@ -237,7 +231,6 @@ fun PiggyBankGrowthIllustration(modifier: Modifier = Modifier) {
     val w = size.width
     val h = size.height
 
-    // Soft ground shadow oval
     drawOval(
       brush = Brush.radialGradient(
         colors = listOf(Color(0xFF075B43).copy(alpha = 0.18f), Color.Transparent),
@@ -248,7 +241,6 @@ fun PiggyBankGrowthIllustration(modifier: Modifier = Modifier) {
       size = Size(w * 0.78f, h * 0.15f)
     )
 
-    // Decorative botanical leaves behind piggy bank
     val leafColor1 = Color(0xFF7ED9A4)
     val leafColor2 = Color(0xFF47B37A)
     drawOval(
@@ -262,7 +254,6 @@ fun PiggyBankGrowthIllustration(modifier: Modifier = Modifier) {
       size = Size(w * 0.09f, h * 0.18f)
     )
 
-    // Three ascending 3D emerald bars on the right
     val barWidths = w * 0.085f
     val barBottom = h * 0.85f
     val barX1 = w * 0.56f
@@ -285,7 +276,6 @@ fun PiggyBankGrowthIllustration(modifier: Modifier = Modifier) {
         size = Size(barWidths, bh),
         cornerRadius = CornerRadius(14f, 14f)
       )
-      // Highlight strip on left of bar for 3D tactile look
       drawRoundRect(
         color = Color.White.copy(alpha = 0.25f),
         topLeft = Offset(bx + 4f, barBottom - bh + 6f),
@@ -294,7 +284,6 @@ fun PiggyBankGrowthIllustration(modifier: Modifier = Modifier) {
       )
     }
 
-    // Sweeping upward growth arrow above the bars
     val curve = Path().apply {
       moveTo(w * 0.45f, h * 0.52f)
       quadraticTo(w * 0.66f, h * 0.34f, w * 0.86f, h * 0.11f)
@@ -315,7 +304,6 @@ fun PiggyBankGrowthIllustration(modifier: Modifier = Modifier) {
       style = Stroke(width = 9f, cap = StrokeCap.Round, join = StrokeJoin.Round)
     )
 
-    // Piggy Bank Feet
     val footColor = Color(0xFF1E7E57)
     drawRoundRect(
       color = footColor,
@@ -330,7 +318,6 @@ fun PiggyBankGrowthIllustration(modifier: Modifier = Modifier) {
       cornerRadius = CornerRadius(14f, 14f)
     )
 
-    // Golden Coin dropping into top slot
     val coinCenter = Offset(w * 0.31f, h * 0.29f)
     drawCircle(
       brush = Brush.radialGradient(
@@ -348,7 +335,6 @@ fun PiggyBankGrowthIllustration(modifier: Modifier = Modifier) {
       style = Stroke(width = 3f)
     )
 
-    // Piggy Bank 3D Body
     val bodyRectTopLeft = Offset(w * 0.14f, h * 0.34f)
     val bodySize = Size(w * 0.34f, h * 0.45f)
     drawOval(
@@ -361,7 +347,6 @@ fun PiggyBankGrowthIllustration(modifier: Modifier = Modifier) {
       size = bodySize
     )
 
-    // Coin slot on top of piggy
     drawRoundRect(
       color = Color(0xFF063D2B),
       topLeft = Offset(w * 0.26f, h * 0.355f),
@@ -369,14 +354,12 @@ fun PiggyBankGrowthIllustration(modifier: Modifier = Modifier) {
       cornerRadius = CornerRadius(8f, 8f)
     )
 
-    // Piggy Ear
     drawOval(
       color = Color(0xFF39AB76),
       topLeft = Offset(w * 0.34f, h * 0.29f),
       size = Size(w * 0.075f, h * 0.12f)
     )
 
-    // Piggy Snout (facing right)
     drawOval(
       brush = Brush.linearGradient(
         colors = listOf(Color(0xFF7AD8A4), Color(0xFF288E5F))
@@ -384,7 +367,6 @@ fun PiggyBankGrowthIllustration(modifier: Modifier = Modifier) {
       topLeft = Offset(w * 0.43f, h * 0.48f),
       size = Size(w * 0.08f, h * 0.16f)
     )
-    // Nostrils
     drawCircle(
       color = Color(0xFF074934),
       center = Offset(w * 0.475f, h * 0.54f),
@@ -396,7 +378,6 @@ fun PiggyBankGrowthIllustration(modifier: Modifier = Modifier) {
       radius = 4.5f
     )
 
-    // Piggy Eye
     drawCircle(
       color = Color(0xFF073B2A),
       center = Offset(w * 0.405f, h * 0.47f),
@@ -415,18 +396,21 @@ fun PiggyBankGrowthIllustration(modifier: Modifier = Modifier) {
  */
 @Composable
 fun TargetBullseyeIllustration(modifier: Modifier = Modifier) {
+  val isCompact = LocalCompactMode.current
+  val primaryColor = MaterialTheme.colorScheme.primary
+  val secondaryColor = MaterialTheme.colorScheme.secondary
+
   Canvas(
     modifier = modifier
-      .size(136.dp)
+      .size(if (isCompact) 108.dp else 136.dp)
       .semantics { contentDescription = "Goals target bullseye with arrow" }
   ) {
     val c = Offset(size.width * 0.48f, size.height * 0.50f)
     val maxR = size.minDimension * 0.42f
 
-    // Drop shadow below target
     drawOval(
       brush = Brush.radialGradient(
-        colors = listOf(JuddlesEvergreen.copy(alpha = 0.22f), Color.Transparent),
+        colors = listOf(primaryColor.copy(alpha = 0.22f), Color.Transparent),
         center = Offset(c.x, size.height * 0.92f),
         radius = maxR * 0.9f
       ),
@@ -434,57 +418,49 @@ fun TargetBullseyeIllustration(modifier: Modifier = Modifier) {
       size = Size(maxR * 1.6f, size.height * 0.14f)
     )
 
-    // Outer 3D bevel ring (Evergreen)
     drawCircle(
-      color = JuddlesEvergreen,
+      color = primaryColor,
       center = Offset(c.x - 4f, c.y + 4f),
       radius = maxR
     )
-    // Ring 1: Fresh Green
     drawCircle(
       brush = Brush.radialGradient(
-        colors = listOf(Color(0xFF5AD093), JuddlesFreshGreen),
+        colors = listOf(secondaryColor.copy(alpha = 0.85f), secondaryColor),
         center = Offset(c.x - 10f, c.y - 10f),
         radius = maxR * 1.2f
       ),
       center = c,
       radius = maxR
     )
-    // Ring 2: Warm Cream
     drawCircle(
       color = Color(0xFFF7F5EA),
       center = c,
       radius = maxR * 0.74f
     )
-    // Ring 3: Fresh Green
     drawCircle(
-      color = Color(0xFF28A770),
+      color = secondaryColor,
       center = c,
       radius = maxR * 0.50f
     )
-    // Ring 4: Warm Cream
     drawCircle(
       color = Color(0xFFF7F5EA),
       center = c,
       radius = maxR * 0.28f
     )
-    // Bullseye Center: Evergreen
     drawCircle(
-      color = JuddlesEvergreen,
+      color = primaryColor,
       center = c,
       radius = maxR * 0.13f
     )
 
-    // Dart Arrow shaft coming from top-right into bullseye center
     val tail = Offset(size.width * 0.86f, size.height * 0.14f)
     drawLine(
-      color = JuddlesEvergreen,
+      color = primaryColor,
       start = c,
       end = tail,
       strokeWidth = 7f,
       cap = StrokeCap.Round
     )
-    // Fletching feathers at tail
     val featherPath = Path().apply {
       moveTo(size.width * 0.74f, size.height * 0.14f)
       lineTo(size.width * 0.86f, size.height * 0.04f)
@@ -493,13 +469,12 @@ fun TargetBullseyeIllustration(modifier: Modifier = Modifier) {
       lineTo(size.width * 0.86f, size.height * 0.26f)
       close()
     }
-    drawPath(path = featherPath, color = Color(0xFF39B57C))
+    drawPath(path = featherPath, color = secondaryColor)
 
-    // Decorative glossy mint sphere on right
     val sphereCenter = Offset(size.width * 0.90f, size.height * 0.72f)
     drawCircle(
       brush = Brush.radialGradient(
-        colors = listOf(Color(0xFFBDF2D1), Color(0xFF38A873)),
+        colors = listOf(Color(0xFFBDF2D1), secondaryColor),
         center = Offset(sphereCenter.x - 4f, sphereCenter.y - 4f),
         radius = 22f
       ),
@@ -511,7 +486,7 @@ fun TargetBullseyeIllustration(modifier: Modifier = Modifier) {
 
 /**
  * Floating Rounded Capsule Navigation Bar matching all 4 signed-in screens in the mockup:
- * Home | Stats | [ + Evergreen FAB ] | Goals | Profile
+ * Home | Stats | [ + Primary FAB ] | Goals | Profile
  */
 @Composable
 fun JuddlesFloatingBottomBar(
@@ -520,22 +495,26 @@ fun JuddlesFloatingBottomBar(
   onCentralAddClick: () -> Unit,
   modifier: Modifier = Modifier
 ) {
+  val isCompact = LocalCompactMode.current
+  val primary = MaterialTheme.colorScheme.primary
+  val secondary = MaterialTheme.colorScheme.secondary
+
   Box(
     modifier = modifier
       .fillMaxWidth()
       .windowInsetsPadding(WindowInsets.navigationBars)
-      .padding(horizontal = 16.dp, vertical = 10.dp),
+      .padding(horizontal = if (isCompact) 12.dp else 16.dp, vertical = if (isCompact) 6.dp else 10.dp),
     contentAlignment = Alignment.Center
   ) {
     Surface(
       modifier = Modifier
         .fillMaxWidth()
-        .height(68.dp)
+        .height(if (isCompact) 60.dp else 68.dp)
         .shadow(
           elevation = 14.dp,
           shape = RoundedCornerShape(34.dp),
-          ambientColor = JuddlesEvergreen.copy(alpha = 0.18f),
-          spotColor = JuddlesEvergreen.copy(alpha = 0.18f)
+          ambientColor = primary.copy(alpha = 0.18f),
+          spotColor = primary.copy(alpha = 0.18f)
         ),
       shape = RoundedCornerShape(34.dp),
       color = MaterialTheme.colorScheme.surface,
@@ -561,15 +540,15 @@ fun JuddlesFloatingBottomBar(
           tag = "nav_stats"
         )
 
-        // Central Prominent Evergreen Add Button
+        // Central Prominent Add Button (keeps >= 48dp touch target)
         Box(
           modifier = Modifier
-            .size(52.dp)
+            .size(if (isCompact) 48.dp else 52.dp)
             .shadow(8.dp, CircleShape)
             .clip(CircleShape)
             .background(
               Brush.verticalGradient(
-                colors = listOf(JuddlesFreshGreen, JuddlesEvergreen)
+                colors = listOf(secondary, primary)
               )
             )
             .clickable(onClick = onCentralAddClick)
@@ -579,8 +558,8 @@ fun JuddlesFloatingBottomBar(
           Icon(
             imageVector = Icons.Default.Add,
             contentDescription = "Add transaction, goal, or budget",
-            tint = Color.White,
-            modifier = Modifier.size(28.dp)
+            tint = MaterialTheme.colorScheme.onPrimary,
+            modifier = Modifier.size(if (isCompact) 24.dp else 28.dp)
           )
         }
 
@@ -608,7 +587,7 @@ private fun BottomNavItem(
   onClick: () -> Unit,
   tag: String
 ) {
-  val activeColor = JuddlesEvergreen
+  val activeColor = MaterialTheme.colorScheme.primary
   val inactiveColor = MaterialTheme.colorScheme.onSurfaceVariant
   val icon = when (tab) {
     MainNavTab.HOME -> if (selected) Icons.Filled.Home else Icons.Outlined.Home
@@ -654,6 +633,9 @@ fun SegmentedPillSelector(
   onSelectIndex: (Int) -> Unit,
   modifier: Modifier = Modifier
 ) {
+  val primary = MaterialTheme.colorScheme.primary
+  val onPrimary = MaterialTheme.colorScheme.onPrimary
+
   Surface(
     modifier = modifier
       .fillMaxWidth()
@@ -674,7 +656,7 @@ fun SegmentedPillSelector(
             .weight(1f)
             .fillMaxHeight()
             .clip(RoundedCornerShape(20.dp))
-            .background(if (isSelected) JuddlesEvergreen else Color.Transparent)
+            .background(if (isSelected) primary else Color.Transparent)
             .clickable { onSelectIndex(index) }
             .testTag("pill_tab_$index"),
           contentAlignment = Alignment.Center
@@ -684,7 +666,7 @@ fun SegmentedPillSelector(
             style = MaterialTheme.typography.labelLarge.copy(
               fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
             ),
-            color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface,
+            color = if (isSelected) onPrimary else MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
           )
@@ -704,6 +686,10 @@ fun CircularProgressRing(
   size: Dp = 118.dp,
   strokeWidth: Dp = 13.dp
 ) {
+  val primary = MaterialTheme.colorScheme.primary
+  val secondary = MaterialTheme.colorScheme.secondary
+  val trackColor = MaterialTheme.colorScheme.primaryContainer
+
   val animatedSweep by animateFloatAsState(
     targetValue = (percentage.coerceIn(0, 100) / 100f) * 360f,
     animationSpec = tween(durationMillis = 600, easing = FastOutSlowInEasing),
@@ -717,18 +703,16 @@ fun CircularProgressRing(
     contentAlignment = Alignment.Center
   ) {
     Canvas(modifier = Modifier.fillMaxSize().padding(strokeWidth / 2)) {
-      // Background track
       drawArc(
-        color = JuddlesMint,
+        color = trackColor,
         startAngle = 0f,
         sweepAngle = 360f,
         useCenter = false,
         style = Stroke(width = strokeWidth.toPx(), cap = StrokeCap.Round)
       )
-      // Foreground gradient arc
       drawArc(
         brush = Brush.sweepGradient(
-          colors = listOf(JuddlesFreshGreen, JuddlesEvergreen, JuddlesBrightGreen, JuddlesFreshGreen)
+          colors = listOf(secondary, primary, JuddlesBrightGreen, secondary)
         ),
         startAngle = -90f,
         sweepAngle = animatedSweep,
@@ -740,7 +724,7 @@ fun CircularProgressRing(
       text = "$percentage%",
       style = MaterialTheme.typography.headlineMedium.copy(
         fontWeight = FontWeight.Bold,
-        fontSize = 25.sp
+        fontSize = if (size < 110.dp) 21.sp else 25.sp
       ),
       color = MaterialTheme.colorScheme.onSurface
     )
@@ -757,34 +741,40 @@ fun SpendingDonutChartSection(
   formatAmount: (Long) -> String,
   modifier: Modifier = Modifier
 ) {
+  val isCompact = LocalCompactMode.current
   val palette = listOf(
-    JuddlesCoral,       // Food
+    JuddlesCoral,       // Food / Primary Expense
     JuddlesBlue,        // Transport
     JuddlesBrightGreen, // Shopping
     JuddlesTealSoft,    // Bills
     JuddlesAmber,       // Entertainment / Other
-    JuddlesEvergreen
+    MaterialTheme.colorScheme.primary,
+    Color(0xFF8B5CF6),  // Subscriptions / Tech
+    Color(0xFFEC4899)   // Personal Care / Gifts
   )
+
+  val donutSize = if (isCompact) 128.dp else 152.dp
+  val strokeDp = if (isCompact) 20.dp else 24.dp
 
   Row(
     modifier = modifier
       .fillMaxWidth()
-      .padding(vertical = 8.dp),
+      .padding(vertical = if (isCompact) 4.dp else 8.dp),
     verticalAlignment = Alignment.CenterVertically,
-    horizontalArrangement = Arrangement.spacedBy(18.dp)
+    horizontalArrangement = Arrangement.spacedBy(if (isCompact) 12.dp else 18.dp)
   ) {
-    // Donut Ring
     Box(
       modifier = Modifier
-        .size(152.dp)
+        .size(donutSize)
         .semantics { contentDescription = "Spending breakdown donut chart, total spent $totalSpentFormatted" },
       contentAlignment = Alignment.Center
     ) {
-      Canvas(modifier = Modifier.fillMaxSize().padding(14.dp)) {
-        val stroke = 24.dp.toPx()
+      val trackColor = MaterialTheme.colorScheme.primaryContainer
+      Canvas(modifier = Modifier.fillMaxSize().padding(12.dp)) {
+        val stroke = strokeDp.toPx()
         if (categories.isEmpty()) {
           drawArc(
-            color = JuddlesMint,
+            color = trackColor,
             startAngle = 0f,
             sweepAngle = 360f,
             useCenter = false,
@@ -810,7 +800,7 @@ fun SpendingDonutChartSection(
           text = totalSpentFormatted,
           style = MaterialTheme.typography.titleLarge.copy(
             fontWeight = FontWeight.Bold,
-            fontSize = 21.sp
+            fontSize = if (isCompact) 18.sp else 21.sp
           ),
           color = MaterialTheme.colorScheme.onSurface,
           textAlign = TextAlign.Center
@@ -823,10 +813,9 @@ fun SpendingDonutChartSection(
       }
     }
 
-    // Category Legend with Exact Values (PDF Section 3 Screen 4 requirement)
     Column(
       modifier = Modifier.weight(1f),
-      verticalArrangement = Arrangement.spacedBy(10.dp)
+      verticalArrangement = Arrangement.spacedBy(if (isCompact) 6.dp else 10.dp)
     ) {
       if (categories.isEmpty()) {
         Text(
@@ -835,7 +824,7 @@ fun SpendingDonutChartSection(
           color = MaterialTheme.colorScheme.onSurfaceVariant
         )
       } else {
-        categories.take(5).forEachIndexed { idx, item ->
+        categories.take(if (isCompact) 4 else 6).forEachIndexed { idx, item ->
           Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -881,6 +870,9 @@ fun BalanceTrendLineChart(
   points: List<MonthlyComparisonPoint>,
   modifier: Modifier = Modifier
 ) {
+  val isCompact = LocalCompactMode.current
+  val primary = MaterialTheme.colorScheme.primary
+  val secondary = MaterialTheme.colorScheme.secondary
   val values = if (points.isEmpty()) listOf(1000L, 1200L, 1500L) else points.map { it.balanceEndMinor }
   val labels = if (points.isEmpty()) listOf("Sep", "Oct", "Nov") else points.map { it.monthLabel }
 
@@ -888,7 +880,7 @@ fun BalanceTrendLineChart(
     Canvas(
       modifier = Modifier
         .fillMaxWidth()
-        .height(125.dp)
+        .height(if (isCompact) 98.dp else 125.dp)
         .semantics { contentDescription = "Balance trend chart across ${labels.joinToString()}" }
     ) {
       val w = size.width
@@ -897,7 +889,6 @@ fun BalanceTrendLineChart(
       val maxVal = max((values.maxOrNull() ?: 100L).toFloat(), minVal + 100f)
       val range = max(maxVal - minVal, 1f)
 
-      // Subtle dashed/light gridlines
       for (i in 0..2) {
         val y = h * (0.15f + i * 0.32f)
         drawLine(
@@ -934,19 +925,19 @@ fun BalanceTrendLineChart(
         drawPath(
           path = fillPath,
           brush = Brush.verticalGradient(
-            colors = listOf(JuddlesFreshGreen.copy(alpha = 0.35f), Color.Transparent)
+            colors = listOf(secondary.copy(alpha = 0.35f), Color.Transparent)
           )
         )
         drawPath(
           path = linePath,
-          color = JuddlesEvergreen,
+          color = primary,
           style = Stroke(width = 6f, cap = StrokeCap.Round)
         )
       }
 
       coords.forEach { pt ->
         drawCircle(color = Color.White, center = pt, radius = 8f)
-        drawCircle(color = JuddlesEvergreen, center = pt, radius = 5.5f)
+        drawCircle(color = primary, center = pt, radius = 5.5f)
       }
     }
 
@@ -974,11 +965,14 @@ fun IncomeVsExpensesBarChart(
   points: List<MonthlyComparisonPoint>,
   modifier: Modifier = Modifier
 ) {
+  val isCompact = LocalCompactMode.current
+  val primary = MaterialTheme.colorScheme.primary
+
   Column(modifier = modifier.fillMaxWidth()) {
     Canvas(
       modifier = Modifier
         .fillMaxWidth()
-        .height(115.dp)
+        .height(if (isCompact) 92.dp else 115.dp)
         .semantics { contentDescription = "Monthly income versus expenses bar chart" }
     ) {
       val w = size.width
@@ -988,7 +982,6 @@ fun IncomeVsExpensesBarChart(
         100f
       )
 
-      // Subtle gridlines
       for (i in 0..2) {
         val y = h * (0.15f + i * 0.35f)
         drawLine(
@@ -1008,16 +1001,14 @@ fun IncomeVsExpensesBarChart(
         val incH = ((pt.incomeMinor.toFloat() / maxVal) * (h * 0.78f)).coerceAtLeast(10f)
         val expH = ((pt.expenseMinor.toFloat() / maxVal) * (h * 0.78f)).coerceAtLeast(10f)
 
-        // Income bar (Fresh Green)
         drawRoundRect(
           brush = Brush.verticalGradient(
-            colors = listOf(JuddlesBrightGreen, JuddlesEvergreen)
+            colors = listOf(JuddlesBrightGreen, primary)
           ),
           topLeft = Offset(centerX - barW - 4f, h - incH),
           size = Size(barW, incH),
           cornerRadius = CornerRadius(10f, 10f)
         )
-        // Expense bar (Warm Coral/Amber)
         drawRoundRect(
           brush = Brush.verticalGradient(
             colors = listOf(JuddlesAmber, JuddlesCoral)

@@ -10,6 +10,7 @@ import com.example.data.model.SpendingBudget
 import com.example.data.model.TimePeriodFilter
 import com.example.data.model.UserProfile
 import com.example.data.repository.JuddlesRepository
+import com.example.util.ReportExportManager
 import com.google.firebase.firestore.FirebaseFirestoreException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -56,6 +57,9 @@ class JuddlesViewModel(
   private val _actionFeedback = MutableStateFlow<String?>(null)
   private val _errorMessage = MutableStateFlow<String?>(null)
 
+  // Optimistic local profile state so Compact Mode, Theme, Currency, and Hide Amounts apply in 0ms
+  private val _optimisticProfileOverride = MutableStateFlow<UserProfile?>(null)
+
   val selectedPeriod: StateFlow<TimePeriodFilter> = _selectedPeriod.asStateFlow()
   val selectedReportsTab: StateFlow<Int> = _selectedReportsTab.asStateFlow()
   val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
@@ -86,19 +90,21 @@ class JuddlesViewModel(
     }
 
   val uiState: StateFlow<JuddlesDashboardState> = combine(
-    profileFlow,
+    combine(profileFlow, _optimisticProfileOverride) { remoteProfile, localOverride ->
+      localOverride ?: remoteProfile ?: UserProfile(
+        id = currentUserId,
+        userId = currentUserId,
+        displayName = initialDisplayName.ifBlank { "Explorer" },
+        email = initialEmail
+      )
+    },
     transactionsFlow,
     goalsFlow,
     budgetsFlow,
     combine(_selectedPeriod, _selectedReportsTab, _searchQuery, _selectedCategoryFilter, _actionFeedback) { period, repTab, query, catFilter, feedback ->
       FilterBundle(period, repTab, query, catFilter, feedback)
     }
-  ) { profile, transactions, goals, budgets, filterBundle ->
-    val resolvedProfile = profile ?: UserProfile(
-      userId = currentUserId,
-      displayName = initialDisplayName.ifBlank { "Explorer" },
-      email = initialEmail
-    )
+  ) { resolvedProfile, transactions, goals, budgets, filterBundle ->
     val hasSampleTag = transactions.any { it.note.contains("[Sample]") } ||
       goals.any { it.notes.contains("[Sample]") }
 
@@ -122,6 +128,7 @@ class JuddlesViewModel(
     initialValue = JuddlesDashboardState(
       isLoading = true,
       profile = UserProfile(
+        id = currentUserId,
         userId = currentUserId,
         displayName = initialDisplayName.ifBlank { "Explorer" },
         email = initialEmail
@@ -139,7 +146,6 @@ class JuddlesViewModel(
 
   init {
     viewModelScope.launch {
-      // Ensure user profile document exists in Firestore upon authentication
       val current = uiState.value.profile
       repository.ensureOrSaveUserProfile(
         current.copy(
@@ -166,6 +172,10 @@ class JuddlesViewModel(
     _errorMessage.value = null
   }
 
+  fun setFeedbackMessage(message: String) {
+    _actionFeedback.value = message
+  }
+
   fun setPeriod(period: TimePeriodFilter) {
     _selectedPeriod.value = period
   }
@@ -184,14 +194,44 @@ class JuddlesViewModel(
 
   fun toggleHideAmounts() {
     val current = uiState.value.profile
-    updateProfile(current.copy(hideAmounts = !current.hideAmounts))
+    updateProfile(current.copy(hideAmounts = !current.hideAmounts), silent = true)
   }
 
-  fun updateProfile(updated: UserProfile) {
+  fun toggleCompactMode() {
+    val current = uiState.value.profile
+    val next = !current.compactMode
+    updateProfile(
+      updated = current.copy(compactMode = next),
+      feedbackText = if (next) "Compact Mode enabled" else "Standard layout restored"
+    )
+  }
+
+  fun setThemeMode(themeMode: String) {
+    val current = uiState.value.profile
+    updateProfile(
+      updated = current.copy(themeMode = themeMode),
+      feedbackText = "Theme updated to $themeMode"
+    )
+  }
+
+  fun updateProfile(
+    updated: UserProfile,
+    silent: Boolean = false,
+    feedbackText: String = "Preferences saved"
+  ) {
+    // Apply immediately so UI updates in 0ms
+    val normalized = updated.copy(
+      id = currentUserId,
+      userId = currentUserId
+    )
+    _optimisticProfileOverride.value = normalized
+
     viewModelScope.launch {
-      val result = repository.ensureOrSaveUserProfile(updated)
+      val result = repository.ensureOrSaveUserProfile(normalized)
       if (result.isSuccess) {
-        _actionFeedback.value = "Preferences saved"
+        if (!silent) {
+          _actionFeedback.value = feedbackText
+        }
       } else {
         _errorMessage.value = result.exceptionOrNull()?.localizedMessage ?: "Could not save preferences"
       }
@@ -364,17 +404,15 @@ class JuddlesViewModel(
       val dayMs = 86_400_000L
       val currency = uiState.value.profile.preferredCurrency
 
-      // Update opening balance so Total Balance = $4,820.75 with the sample income & expenses
-      // Income = $2,570.00 + $3,500.75 = $6,070.75; Expenses = $420 + $250 + $300 + $280 = $1,250.00
-      // Total Balance = $0 + $6,070.75 - $1,250.00 = $4,820.75!
-      repository.ensureOrSaveUserProfile(
-        uiState.value.profile.copy(
-          openingBalanceMinor = 0L,
-          monthlyGoalMinor = 500000L // $5,000.00
-        )
+      val updatedProfile = uiState.value.profile.copy(
+        id = currentUserId,
+        userId = currentUserId,
+        openingBalanceMinor = 0L,
+        monthlyGoalMinor = 500000L // $5,000.00
       )
+      _optimisticProfileOverride.value = updatedProfile
+      repository.ensureOrSaveUserProfile(updatedProfile)
 
-      // Sample Income & Expenses matching the Expenses donut ($1,250 Total Spent: Food $420, Transport $250, Shopping $300, Bills $280)
       val sampleTransactions = listOf(
         FinancialTransaction(
           userId = currentUserId,
@@ -464,7 +502,6 @@ class JuddlesViewModel(
           merchant = "Acme Studio",
           occurredAtEpochMillis = now - 5 * dayMs
         ),
-        // Prior month entries for multi-month Reports comparison
         FinancialTransaction(
           userId = currentUserId,
           type = "INCOME",
@@ -515,10 +552,6 @@ class JuddlesViewModel(
         repository.createTransaction(tx)
       }
 
-      // Sample Goals matching Screen 3 mockup:
-      // 1. Travel the World ($3,000 / $3,000, COMPLETED)
-      // 2. Buy a House ($10,000 / $20,000, 50%)
-      // 3. New Car ($5,000 / $15,000, 33%)
       val sampleGoals = listOf(
         FinancialGoal(
           userId = currentUserId,
@@ -559,7 +592,6 @@ class JuddlesViewModel(
         repository.createGoal(g)
       }
 
-      // Sample Budget matching Screen 4 ($2,000 limit)
       repository.saveBudget(
         SpendingBudget(
           userId = currentUserId,
@@ -580,9 +612,13 @@ class JuddlesViewModel(
   fun clearAllWorkspaceData() {
     viewModelScope.launch {
       val result = repository.clearAllUserData()
-      repository.ensureOrSaveUserProfile(
-        uiState.value.profile.copy(openingBalanceMinor = 0L)
+      val updatedProfile = uiState.value.profile.copy(
+        id = currentUserId,
+        userId = currentUserId,
+        openingBalanceMinor = 0L
       )
+      _optimisticProfileOverride.value = updatedProfile
+      repository.ensureOrSaveUserProfile(updatedProfile)
       if (result.isSuccess) {
         _actionFeedback.value = "All workspace records cleared"
       } else {
@@ -591,28 +627,6 @@ class JuddlesViewModel(
     }
   }
 
-  fun buildExportCsvSummary(): String {
-    val state = uiState.value
-    val currency = state.profile.preferredCurrency
-    val periodTx = FinancialCalculator.filterByPeriod(state.transactions, state.selectedPeriod)
-    val income = FinancialCalculator.totalIncomeMinor(periodTx)
-    val expenses = FinancialCalculator.totalExpensesMinor(periodTx)
-    val net = FinancialCalculator.netCashFlowMinor(periodTx)
-    val balance = FinancialCalculator.currentBalanceMinor(state.profile.openingBalanceMinor, state.transactions)
-
-    val sb = StringBuilder()
-    sb.appendLine("Juddles Financial Report (${state.selectedPeriod.label})")
-    sb.appendLine("Total Balance,${FinancialCalculator.formatCurrencyMinor(balance, currency)}")
-    sb.appendLine("Period Income,${FinancialCalculator.formatCurrencyMinor(income, currency)}")
-    sb.appendLine("Period Expenses,${FinancialCalculator.formatCurrencyMinor(expenses, currency)}")
-    sb.appendLine("Net Cash Flow (Surplus),${FinancialCalculator.formatCurrencyMinor(net, currency)}")
-    sb.appendLine()
-    sb.appendLine("Type,Category,Amount,Account,Merchant,Note,Date")
-    for (tx in periodTx) {
-      val amt = FinancialCalculator.formatCurrencyMinor(tx.amountMinor, tx.currency)
-      val date = FinancialCalculator.formatRelativeDate(tx.occurredAtEpochMillis).replace(",", " ")
-      sb.appendLine("${tx.type},${tx.category},$amt,${tx.accountName},${tx.merchant},${tx.note},$date")
-    }
-    return sb.toString()
-  }
+  fun buildExportCsvSummary(): String =
+    ReportExportManager.generateCsvString(uiState.value)
 }

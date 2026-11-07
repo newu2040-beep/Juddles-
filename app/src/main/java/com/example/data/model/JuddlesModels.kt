@@ -24,7 +24,7 @@ data class UserProfile(
   val monthlyGoalMinor: Long = 500000L, // $5,000.00 default target
   val compactMode: Boolean = false,
   val hideAmounts: Boolean = false,
-  val themeMode: String = "LIGHT",
+  val themeMode: String = "LIGHT", // LIGHT, DARK, OCEAN, SUNSET, LAVENDER, MIDNIGHT, SYSTEM
   val notificationsEnabled: Boolean = true,
   val budgetAlertThreshold: Long = 80L,
   @ServerTimestamp val createdAt: Timestamp? = null,
@@ -61,7 +61,7 @@ data class FinancialGoal(
   val currency: String = "USD",
   val targetDate: String = "",
   val status: String = "ACTIVE", // ACTIVE, COMPLETED, PAUSED, ARCHIVED
-  val iconKey: String = "TRAVEL", // TRAVEL, HOME, CAR, EMERGENCY, EDUCATION, TROPHY
+  val iconKey: String = "TRAVEL", // TRAVEL, HOME, CAR, EMERGENCY, EDUCATION, TROPHY, TECH, HEALTH, WEDDING, RETIREMENT
   val notes: String = "",
   @ServerTimestamp val createdAt: Timestamp? = null,
   @ServerTimestamp val updatedAt: Timestamp? = null,
@@ -82,6 +82,53 @@ data class SpendingBudget(
   @ServerTimestamp val updatedAt: Timestamp? = null,
 )
 
+object JuddlesCategoryCatalog {
+  val expenseCategories = listOf(
+    "Food",
+    "Groceries",
+    "Dining Out",
+    "Transport",
+    "Fuel & EV",
+    "Shopping",
+    "Bills",
+    "Rent & Mortgage",
+    "Health & Fitness",
+    "Entertainment",
+    "Subscriptions",
+    "Travel",
+    "Education",
+    "Personal Care",
+    "Pets",
+    "Gifts & Charity"
+  )
+
+  val incomeCategories = listOf(
+    "Salary",
+    "Freelance",
+    "Business",
+    "Investment",
+    "Dividends",
+    "Rental Income",
+    "Bonus",
+    "Refund",
+    "Gift",
+    "Other Income"
+  )
+
+  val goalIconKeys = listOf(
+    "TRAVEL",
+    "HOME",
+    "CAR",
+    "EMERGENCY",
+    "EDUCATION",
+    "TROPHY",
+    "TECH",
+    "HEALTH",
+    "WEDDING",
+    "RETIREMENT"
+  )
+}
+
 enum class TimePeriodFilter(val label: String) {
   THIS_MONTH("This Month"),
   THIS_YEAR("This Year"),
@@ -100,6 +147,98 @@ data class MonthlyComparisonPoint(
   val expenseMinor: Long,
   val balanceEndMinor: Long,
 )
+
+data class JuddlesCurrencyOption(
+  val code: String,
+  val symbol: String,
+  val name: String,
+  val country: String,
+  val flag: String,
+  val region: String
+)
+
+object JuddlesCurrencyCatalog {
+  val regions = listOf(
+    "All",
+    "South Asia & Nepal",
+    "East & SE Asia",
+    "Middle East & Central Asia",
+    "Americas, Europe & Global"
+  )
+
+  val currencies: List<JuddlesCurrencyOption> = listOf(
+    // South Asia & Himalayan (Featuring Nepal & Neighbors)
+    JuddlesCurrencyOption("NPR", "रू", "Nepalese Rupee", "Nepal", "🇳🇵", "South Asia & Nepal"),
+    JuddlesCurrencyOption("INR", "₹", "Indian Rupee", "India", "🇮🇳", "South Asia & Nepal"),
+    JuddlesCurrencyOption("BDT", "৳", "Bangladeshi Taka", "Bangladesh", "🇧🇩", "South Asia & Nepal"),
+    JuddlesCurrencyOption("PKR", "₨", "Pakistani Rupee", "Pakistan", "🇵🇰", "South Asia & Nepal"),
+    JuddlesCurrencyOption("LKR", "Rs.", "Sri Lankan Rupee", "Sri Lanka", "🇱🇰", "South Asia & Nepal"),
+    JuddlesCurrencyOption("BTN", "Nu.", "Bhutanese Ngultrum", "Bhutan", "🇧🇹", "South Asia & Nepal"),
+    JuddlesCurrencyOption("MVR", "Rf.", "Maldivian Rufiyaa", "Maldives", "🇲🇻", "South Asia & Nepal"),
+    JuddlesCurrencyOption("AFN", "؋", "Afghan Afghani", "Afghanistan", "🇦🇫", "South Asia & Nepal"),
+
+    // East & Southeast Asia
+    JuddlesCurrencyOption("JPY", "¥", "Japanese Yen", "Japan", "🇯🇵", "East & SE Asia"),
+    JuddlesCurrencyOption("CNY", "¥", "Chinese Yuan", "China", "🇨🇳", "East & SE Asia"),
+    JuddlesCurrencyOption("KRW", "₩", "South Korean Won", "South Korea", "🇰🇷", "East & SE Asia"),
+    JuddlesCurrencyOption("SGD", "S$", "Singapore Dollar", "Singapore", "🇸🇬", "East & SE Asia"),
+    JuddlesCurrencyOption("MYR", "RM", "Malaysian Ringgit", "Malaysia", "🇲🇾", "East & SE Asia"),
+    JuddlesCurrencyOption("THB", "฿", "Thai Baht", "Thailand", "🇹🇭", "East & SE Asia"),
+    JuddlesCurrencyOption("IDR", "Rp", "Indonesian Rupiah", "Indonesia", "🇮🇩", "East & SE Asia"),
+    JuddlesCurrencyOption("PHP", "₱", "Philippine Peso", "Philippines", "🇵🇭", "East & SE Asia"),
+    JuddlesCurrencyOption("VND", "₫", "Vietnamese Dong", "Vietnam", "🇻🇳", "East & SE Asia"),
+    JuddlesCurrencyOption("HKD", "HK$", "Hong Kong Dollar", "Hong Kong", "🇭🇰", "East & SE Asia"),
+    JuddlesCurrencyOption("TWD", "NT$", "New Taiwan Dollar", "Taiwan", "🇹🇼", "East & SE Asia"),
+    JuddlesCurrencyOption("MMK", "Ks", "Myanmar Kyat", "Myanmar", "🇲🇲", "East & SE Asia"),
+    JuddlesCurrencyOption("KHR", "៛", "Cambodian Riel", "Cambodia", "🇰🇭", "East & SE Asia"),
+    JuddlesCurrencyOption("LAK", "₭", "Lao Kip", "Laos", "🇱🇦", "East & SE Asia"),
+    JuddlesCurrencyOption("BND", "B$", "Brunei Dollar", "Brunei", "🇧🇳", "East & SE Asia"),
+    JuddlesCurrencyOption("MNT", "₮", "Mongolian Tögrög", "Mongolia", "🇲🇳", "East & SE Asia"),
+
+    // Middle East & Central Asia
+    JuddlesCurrencyOption("AED", "AED ", "UAE Dirham", "United Arab Emirates", "🇦🇪", "Middle East & Central Asia"),
+    JuddlesCurrencyOption("SAR", "SAR ", "Saudi Riyal", "Saudi Arabia", "🇸🇦", "Middle East & Central Asia"),
+    JuddlesCurrencyOption("QAR", "QR ", "Qatari Riyal", "Qatar", "🇶🇦", "Middle East & Central Asia"),
+    JuddlesCurrencyOption("KWD", "KD ", "Kuwaiti Dinar", "Kuwait", "🇰🇼", "Middle East & Central Asia"),
+    JuddlesCurrencyOption("OMR", "OMR ", "Omani Rial", "Oman", "🇴🇲", "Middle East & Central Asia"),
+    JuddlesCurrencyOption("BHD", "BD ", "Bahraini Dinar", "Bahrain", "🇧🇭", "Middle East & Central Asia"),
+    JuddlesCurrencyOption("TRY", "₺", "Turkish Lira", "Turkey", "🇹🇷", "Middle East & Central Asia"),
+    JuddlesCurrencyOption("ILS", "₪", "Israeli Shekel", "Israel", "🇮🇱", "Middle East & Central Asia"),
+    JuddlesCurrencyOption("KZT", "₸", "Kazakhstani Tenge", "Kazakhstan", "🇰🇿", "Middle East & Central Asia"),
+    JuddlesCurrencyOption("UZS", "so'm ", "Uzbekistani Som", "Uzbekistan", "🇺🇿", "Middle East & Central Asia"),
+
+    // Americas, Europe, Oceania & Africa (Global Major Currencies)
+    JuddlesCurrencyOption("USD", "$", "US Dollar", "United States", "🇺🇸", "Americas, Europe & Global"),
+    JuddlesCurrencyOption("EUR", "€", "Euro", "Eurozone", "🇪🇺", "Americas, Europe & Global"),
+    JuddlesCurrencyOption("GBP", "£", "British Pound", "United Kingdom", "🇬🇧", "Americas, Europe & Global"),
+    JuddlesCurrencyOption("CAD", "CA$", "Canadian Dollar", "Canada", "🇨🇦", "Americas, Europe & Global"),
+    JuddlesCurrencyOption("AUD", "A$", "Australian Dollar", "Australia", "🇦🇺", "Americas, Europe & Global"),
+    JuddlesCurrencyOption("NZD", "NZ$", "New Zealand Dollar", "New Zealand", "🇳🇿", "Americas, Europe & Global"),
+    JuddlesCurrencyOption("CHF", "CHF ", "Swiss Franc", "Switzerland", "🇨🇭", "Americas, Europe & Global"),
+    JuddlesCurrencyOption("SEK", "kr ", "Swedish Krona", "Sweden", "🇸🇪", "Americas, Europe & Global"),
+    JuddlesCurrencyOption("NOK", "kr ", "Norwegian Krone", "Norway", "🇳🇴", "Americas, Europe & Global"),
+    JuddlesCurrencyOption("PLN", "zł", "Polish Złoty", "Poland", "🇵🇱", "Americas, Europe & Global"),
+    JuddlesCurrencyOption("BRL", "R$", "Brazilian Real", "Brazil", "🇧🇷", "Americas, Europe & Global"),
+    JuddlesCurrencyOption("MXN", "MX$", "Mexican Peso", "Mexico", "🇲🇽", "Americas, Europe & Global"),
+    JuddlesCurrencyOption("ZAR", "R", "South African Rand", "South Africa", "🇿🇦", "Americas, Europe & Global"),
+    JuddlesCurrencyOption("NGN", "₦", "Nigerian Naira", "Nigeria", "🇳🇬", "Americas, Europe & Global"),
+    JuddlesCurrencyOption("KES", "KSh ", "Kenyan Shilling", "Kenya", "🇰🇪", "Americas, Europe & Global"),
+    JuddlesCurrencyOption("EGP", "E£", "Egyptian Pound", "Egypt", "🇪🇬", "Americas, Europe & Global")
+  )
+
+  fun findByCode(code: String): JuddlesCurrencyOption? =
+    currencies.firstOrNull { it.code.equals(code, ignoreCase = true) }
+
+  fun symbolFor(code: String): String {
+    val found = findByCode(code)
+    if (found != null) return found.symbol
+    return try {
+      Currency.getInstance(code.uppercase(Locale.US)).symbol
+    } catch (e: Exception) {
+      "$"
+    }
+  }
+}
 
 object FinancialCalculator {
 
@@ -225,7 +364,6 @@ object FinancialCalculator {
       val month = cal.get(Calendar.MONTH)
       val label = monthFormat.format(cal.time)
 
-      // End of this month
       val endOfMonthCal = Calendar.getInstance().apply {
         set(Calendar.YEAR, year)
         set(Calendar.MONTH, month)
@@ -263,20 +401,7 @@ object FinancialCalculator {
     showSign: Boolean = false
   ): String {
     if (hideAmounts) return "••••••"
-    val symbol = when (currencyCode.uppercase(Locale.US)) {
-      "USD" -> "$"
-      "EUR" -> "€"
-      "GBP" -> "£"
-      "INR" -> "₹"
-      "JPY" -> "¥"
-      "CAD" -> "CA$"
-      "AUD" -> "A$"
-      else -> try {
-        Currency.getInstance(currencyCode).symbol
-      } catch (e: Exception) {
-        "$"
-      }
-    }
+    val symbol = JuddlesCurrencyCatalog.symbolFor(currencyCode)
     val isNegative = amountMinor < 0L
     val absMinor = abs(amountMinor)
     val major = absMinor / 100.0

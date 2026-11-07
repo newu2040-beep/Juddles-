@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.Compress
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.NotificationsNone
@@ -45,7 +46,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -59,25 +59,23 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.FinancialCalculator
+import com.example.data.model.FinancialTransaction
 import com.example.ui.components.CircularProgressRing
 import com.example.ui.theme.JuddlesAmber
 import com.example.ui.theme.JuddlesAmberSoft
 import com.example.ui.theme.JuddlesBlue
-import com.example.ui.theme.JuddlesBlueSoft
 import com.example.ui.theme.JuddlesBrightGreen
 import com.example.ui.theme.JuddlesCoral
-import com.example.ui.theme.JuddlesCoralSoft
-import com.example.ui.theme.JuddlesEvergreen
 import com.example.ui.theme.JuddlesEvergreenDeep
-import com.example.ui.theme.JuddlesFreshGreen
-import com.example.ui.theme.JuddlesIceGreen
-import com.example.ui.theme.JuddlesMint
+import com.example.ui.theme.LocalCompactMode
+import com.example.ui.theme.LocalJuddlesDimensions
 import com.example.ui.viewmodel.JuddlesDashboardState
 import kotlin.math.max
 import kotlin.math.roundToInt
 
 /**
- * Screen 2 — Home Dashboard matching the second screen in the reference mockup.
+ * Screen 2 — Home Dashboard matching the second screen in the reference mockup,
+ * with full Compact Mode and Multi-Theme support.
  */
 @Composable
 fun HomeDashboardScreen(
@@ -95,12 +93,17 @@ fun HomeDashboardScreen(
   onToggleHideAmounts: () -> Unit,
   onLoadSampleWorkspace: () -> Unit,
   onClearSampleWorkspace: () -> Unit,
+  onOpenExpensesClick: () -> Unit = {},
+  onTransactionClick: (FinancialTransaction) -> Unit = {},
   modifier: Modifier = Modifier
 ) {
   val currency = state.profile.preferredCurrency
   val hide = state.profile.hideAmounts
-  val compact = state.profile.compactMode
-  val verticalSpacing = if (compact) 12.dp else 18.dp
+  val compact = LocalCompactMode.current || state.profile.compactMode
+  val dims = LocalJuddlesDimensions.current
+  val primaryColor = MaterialTheme.colorScheme.primary
+  val secondaryColor = MaterialTheme.colorScheme.secondary
+  val primaryContainer = MaterialTheme.colorScheme.primaryContainer
 
   val totalBalanceMinor = FinancialCalculator.currentBalanceMinor(
     openingBalanceMinor = state.profile.openingBalanceMinor,
@@ -116,8 +119,6 @@ fun HomeDashboardScreen(
     else -> "↑ 0.0%"
   }
 
-  // Monthly goal ring calculation:
-  // Uses either saved goals progress or current balance towards monthlyGoalMinor
   val monthlyTargetMinor = state.profile.monthlyGoalMinor.coerceAtLeast(10000L)
   val totalGoalsCurrent = state.goals.sumOf { it.currentMinor }
   val progressNumerator = when {
@@ -126,12 +127,12 @@ fun HomeDashboardScreen(
     else -> 0L
   }
   val progressPercent = if (state.isSampleWorkspaceLoaded && monthlyTargetMinor == 500000L && totalBalanceMinor == 482075L) {
-    78 // Exact mockup headline ring when sample workspace is loaded
+    78
   } else {
     ((progressNumerator.toDouble() / monthlyTargetMinor.toDouble()) * 100.0).roundToInt().coerceIn(0, 100)
   }
   val leftTowardsGoalMinor = if (state.isSampleWorkspaceLoaded && monthlyTargetMinor == 500000L && totalBalanceMinor == 482075L) {
-    102000L // $1,020 left in mockup
+    102000L
   } else {
     (monthlyTargetMinor - progressNumerator).coerceAtLeast(0L)
   }
@@ -139,12 +140,12 @@ fun HomeDashboardScreen(
   LazyColumn(
     modifier = modifier.fillMaxSize(),
     contentPadding = PaddingValues(
-      start = 20.dp,
-      end = 20.dp,
-      top = 12.dp,
-      bottom = 104.dp
+      start = dims.screenHorizontalPadding,
+      end = dims.screenHorizontalPadding,
+      top = dims.screenTopPadding,
+      bottom = if (compact) 86.dp else 104.dp
     ),
-    verticalArrangement = Arrangement.spacedBy(verticalSpacing)
+    verticalArrangement = Arrangement.spacedBy(dims.sectionSpacing)
   ) {
     // 1. Greeting Header & Notification Bell
     item {
@@ -154,17 +155,47 @@ fun HomeDashboardScreen(
         verticalAlignment = Alignment.CenterVertically
       ) {
         Column(modifier = Modifier.weight(1f)) {
-          Text(
-            text = "Hello, ${state.profile.displayName.ifBlank { "Explorer" }}! 👋",
-            style = MaterialTheme.typography.headlineMedium.copy(
-              fontWeight = FontWeight.Bold,
-              fontSize = 23.sp
-            ),
-            color = MaterialTheme.colorScheme.onBackground,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-          )
-          Spacer(modifier = Modifier.height(2.dp))
+          Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+          ) {
+            Text(
+              text = "Hello, ${state.profile.displayName.ifBlank { "Explorer" }}! 👋",
+              style = MaterialTheme.typography.headlineMedium.copy(
+                fontWeight = FontWeight.Bold,
+                fontSize = if (compact) 20.sp else 23.sp
+              ),
+              color = MaterialTheme.colorScheme.onBackground,
+              maxLines = 1,
+              overflow = TextOverflow.Ellipsis
+            )
+            if (compact) {
+              Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = primaryContainer,
+                modifier = Modifier.testTag("compact_mode_active_badge")
+              ) {
+                Row(
+                  modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp),
+                  verticalAlignment = Alignment.CenterVertically
+                ) {
+                  Icon(
+                    imageVector = Icons.Default.Compress,
+                    contentDescription = "Compact Mode Active",
+                    tint = primaryColor,
+                    modifier = Modifier.size(12.dp)
+                  )
+                  Spacer(modifier = Modifier.width(3.dp))
+                  Text(
+                    text = "Compact",
+                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                    color = primaryColor
+                  )
+                }
+              }
+            }
+          }
+          Spacer(modifier = Modifier.height(if (compact) 1.dp else 2.dp))
           Text(
             text = "Let's track your progress today.",
             style = MaterialTheme.typography.bodyMedium,
@@ -177,7 +208,7 @@ fun HomeDashboardScreen(
           modifier = Modifier
             .size(48.dp)
             .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.85f))
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.88f))
             .clickable(onClick = onNotificationsClick)
             .testTag("notifications_button"),
           contentAlignment = Alignment.Center
@@ -204,60 +235,62 @@ fun HomeDashboardScreen(
     if (state.isSampleWorkspaceLoaded) {
       item {
         Surface(
-          shape = RoundedCornerShape(16.dp),
-          color = JuddlesMint,
+          shape = RoundedCornerShape(dims.cardCornerRadius),
+          color = primaryContainer,
           modifier = Modifier.fillMaxWidth()
         ) {
           Row(
             modifier = Modifier
               .fillMaxWidth()
-              .padding(horizontal = 14.dp, vertical = 8.dp),
+              .padding(horizontal = 14.dp, vertical = if (compact) 4.dp else 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
           ) {
             Text(
               text = "Sample Workspace Active",
               style = MaterialTheme.typography.labelLarge,
-              color = JuddlesEvergreen,
+              color = primaryColor,
               modifier = Modifier.weight(1f)
             )
             TextButton(
               onClick = onClearSampleWorkspace,
               modifier = Modifier.testTag("clear_sample_workspace_button")
             ) {
-              Text("Remove Sample", color = JuddlesEvergreen, fontWeight = FontWeight.Bold)
+              Text("Remove Sample", color = primaryColor, fontWeight = FontWeight.Bold)
             }
           }
         }
       }
     }
 
-    // 2. Dominant Total Balance Card (#075B43 Evergreen Gradient + Sparkline)
+    // 2. Dominant Total Balance Card (Hero Gradient + Sparkline)
     item {
       Box(
         modifier = Modifier
           .fillMaxWidth()
           .shadow(
-            elevation = 12.dp,
-            shape = RoundedCornerShape(24.dp),
-            ambientColor = JuddlesEvergreen.copy(alpha = 0.25f),
-            spotColor = JuddlesEvergreen.copy(alpha = 0.25f)
+            elevation = if (compact) 8.dp else 12.dp,
+            shape = RoundedCornerShape(dims.cardCornerRadius),
+            ambientColor = primaryColor.copy(alpha = 0.25f),
+            spotColor = primaryColor.copy(alpha = 0.25f)
           )
-          .clip(RoundedCornerShape(24.dp))
+          .clip(RoundedCornerShape(dims.cardCornerRadius))
           .background(
             Brush.linearGradient(
-              colors = listOf(JuddlesEvergreen, JuddlesFreshGreen, JuddlesEvergreenDeep)
+              colors = listOf(primaryColor, secondaryColor, JuddlesEvergreenDeep)
             )
           )
-          .padding(horizontal = 22.dp, vertical = 20.dp)
+          .padding(
+            horizontal = if (compact) 18.dp else 22.dp,
+            vertical = if (compact) 14.dp else 20.dp
+          )
           .testTag("total_balance_card")
       ) {
-        // Sparkline wave on bottom-right of the Total Balance Card
         Canvas(
           modifier = Modifier
             .align(Alignment.BottomEnd)
-            .width(145.dp)
-            .height(64.dp)
+            .width(if (compact) 125.dp else 145.dp)
+            .height(if (compact) 50.dp else 64.dp)
         ) {
           val w = size.width
           val h = size.height
@@ -310,7 +343,7 @@ fun HomeDashboardScreen(
             }
           }
 
-          Spacer(modifier = Modifier.height(4.dp))
+          Spacer(modifier = Modifier.height(if (compact) 2.dp else 4.dp))
 
           Text(
             text = FinancialCalculator.formatCurrencyMinor(
@@ -320,16 +353,16 @@ fun HomeDashboardScreen(
               includeCents = true
             ),
             style = MaterialTheme.typography.displayLarge.copy(
-              fontSize = 35.sp,
+              fontSize = if (compact) 29.sp else 35.sp,
               fontWeight = FontWeight.Bold
             ),
             color = Color.White
           )
 
-          Spacer(modifier = Modifier.height(14.dp))
+          Spacer(modifier = Modifier.height(if (compact) 8.dp else 14.dp))
 
           Surface(
-            color = Color.White.copy(alpha = 0.14f),
+            color = Color.White.copy(alpha = 0.16f),
             shape = RoundedCornerShape(12.dp)
           ) {
             Text(
@@ -347,12 +380,13 @@ fun HomeDashboardScreen(
     item {
       Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        horizontalArrangement = Arrangement.spacedBy(if (compact) 8.dp else 12.dp)
       ) {
         ActionShortcutTile(
           label = "Income",
           icon = Icons.Default.ArrowDownward,
           circleColor = JuddlesBrightGreen,
+          compact = compact,
           onClick = onAddIncomeClick,
           tag = "shortcut_income",
           modifier = Modifier.weight(1f)
@@ -361,6 +395,7 @@ fun HomeDashboardScreen(
           label = "Expense",
           icon = Icons.Default.ArrowUpward,
           circleColor = JuddlesCoral,
+          compact = compact,
           onClick = onAddExpenseClick,
           tag = "shortcut_expense",
           modifier = Modifier.weight(1f)
@@ -369,6 +404,7 @@ fun HomeDashboardScreen(
           label = "Goals",
           icon = Icons.Default.TrackChanges,
           circleColor = JuddlesBlue,
+          compact = compact,
           onClick = onOpenGoalsClick,
           tag = "shortcut_goals",
           modifier = Modifier.weight(1f)
@@ -376,7 +412,8 @@ fun HomeDashboardScreen(
         ActionShortcutTile(
           label = "More",
           icon = Icons.Default.GridView,
-          circleColor = JuddlesEvergreen,
+          circleColor = primaryColor,
+          compact = compact,
           onClick = onOpenMoreToolsClick,
           tag = "shortcut_more",
           modifier = Modifier.weight(1f)
@@ -420,29 +457,29 @@ fun HomeDashboardScreen(
           }
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(if (compact) 6.dp else 10.dp))
 
         Row(
           modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 6.dp, vertical = 6.dp),
+            .padding(horizontal = 6.dp, vertical = if (compact) 2.dp else 6.dp),
           verticalAlignment = Alignment.CenterVertically,
           horizontalArrangement = Arrangement.SpaceBetween
         ) {
           CircularProgressRing(
             percentage = progressPercent,
-            size = 122.dp,
-            strokeWidth = 13.dp
+            size = if (compact) 98.dp else 122.dp,
+            strokeWidth = if (compact) 11.dp else 13.dp
           )
 
-          Spacer(modifier = Modifier.width(20.dp))
+          Spacer(modifier = Modifier.width(if (compact) 14.dp else 20.dp))
 
           Column(
             modifier = Modifier
               .weight(1f)
               .clip(RoundedCornerShape(16.dp))
               .clickable(onClick = onEditMonthlyGoalClick)
-              .padding(8.dp)
+              .padding(if (compact) 4.dp else 8.dp)
               .testTag("edit_monthly_goal_area"),
             horizontalAlignment = Alignment.Start
           ) {
@@ -451,7 +488,7 @@ fun HomeDashboardScreen(
               style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Medium),
               color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(if (compact) 2.dp else 4.dp))
             Text(
               text = FinancialCalculator.formatCurrencyMinor(
                 amountMinor = monthlyTargetMinor,
@@ -461,14 +498,14 @@ fun HomeDashboardScreen(
               ),
               style = MaterialTheme.typography.headlineLarge.copy(
                 fontWeight = FontWeight.Bold,
-                fontSize = 27.sp
+                fontSize = if (compact) 23.sp else 27.sp
               ),
-              color = JuddlesEvergreen
+              color = primaryColor
             )
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(if (compact) 6.dp else 10.dp))
             Surface(
               shape = RoundedCornerShape(14.dp),
-              color = JuddlesMint,
+              color = primaryContainer,
               shadowElevation = 2.dp
             ) {
               Text(
@@ -482,7 +519,10 @@ fun HomeDashboardScreen(
                 } left",
                 style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                modifier = Modifier.padding(
+                  horizontal = if (compact) 12.dp else 16.dp,
+                  vertical = if (compact) 5.dp else 8.dp
+                )
               )
             }
           }
@@ -498,22 +538,25 @@ fun HomeDashboardScreen(
           style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
           color = MaterialTheme.colorScheme.onBackground
         )
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(if (compact) 6.dp else 10.dp))
         Surface(
           modifier = Modifier
             .fillMaxWidth()
             .shadow(
               elevation = 8.dp,
-              shape = RoundedCornerShape(24.dp),
-              ambientColor = JuddlesEvergreen.copy(alpha = 0.12f)
+              shape = RoundedCornerShape(dims.cardCornerRadius),
+              ambientColor = primaryColor.copy(alpha = 0.12f)
             ),
-          shape = RoundedCornerShape(24.dp),
+          shape = RoundedCornerShape(dims.cardCornerRadius),
           color = MaterialTheme.colorScheme.surface
         ) {
           Row(
             modifier = Modifier
               .fillMaxWidth()
-              .padding(horizontal = 12.dp, vertical = 18.dp),
+              .padding(
+                horizontal = if (compact) 8.dp else 12.dp,
+                vertical = if (compact) 12.dp else 18.dp
+              ),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.Top
           ) {
@@ -522,6 +565,7 @@ fun HomeDashboardScreen(
               icon = Icons.Default.Add,
               iconBg = JuddlesBrightGreen,
               iconTint = Color.White,
+              compact = compact,
               onClick = onAddTransactionClick,
               tag = "quick_add_transaction"
             )
@@ -530,6 +574,7 @@ fun HomeDashboardScreen(
               icon = Icons.Default.AccountBalanceWallet,
               iconBg = JuddlesAmberSoft,
               iconTint = JuddlesAmber,
+              compact = compact,
               onClick = onSetBudgetClick,
               tag = "quick_set_budget"
             )
@@ -538,14 +583,16 @@ fun HomeDashboardScreen(
               icon = Icons.Default.EmojiEvents,
               iconBg = JuddlesAmberSoft,
               iconTint = JuddlesAmber,
+              compact = compact,
               onClick = onNewGoalClick,
               tag = "quick_new_goal"
             )
             QuickActionColumnItem(
               title = "View\nReports",
               icon = Icons.Default.BarChart,
-              iconBg = JuddlesIceGreen,
-              iconTint = JuddlesEvergreen,
+              iconBg = primaryContainer,
+              iconTint = primaryColor,
+              compact = compact,
               onClick = onViewReportsClick,
               tag = "quick_view_reports"
             )
@@ -554,11 +601,11 @@ fun HomeDashboardScreen(
       }
     }
 
-    // 6. Empty Workspace Helper Card (PDF Section 7 & 8: Honest empty dashboard with clear first action or optional labelled sample workspace)
+    // 6. Recent Activity Preview when transactions exist, or Empty Workspace Helper Card when empty
     if (state.transactions.isEmpty() && state.goals.isEmpty()) {
       item {
         Surface(
-          shape = RoundedCornerShape(22.dp),
+          shape = RoundedCornerShape(dims.cardCornerRadius),
           color = MaterialTheme.colorScheme.surface,
           tonalElevation = 2.dp,
           modifier = Modifier.fillMaxWidth()
@@ -566,7 +613,7 @@ fun HomeDashboardScreen(
           Column(
             modifier = Modifier
               .fillMaxWidth()
-              .padding(20.dp),
+              .padding(dims.cardInnerHorizontalPadding),
             horizontalAlignment = Alignment.CenterHorizontally
           ) {
             Text(
@@ -588,7 +635,7 @@ fun HomeDashboardScreen(
             ) {
               Button(
                 onClick = onAddTransactionClick,
-                colors = ButtonDefaults.buttonColors(containerColor = JuddlesEvergreen),
+                colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
                 shape = RoundedCornerShape(20.dp),
                 modifier = Modifier.weight(1f)
               ) {
@@ -601,8 +648,54 @@ fun HomeDashboardScreen(
                   .weight(1f)
                   .testTag("load_sample_workspace_button")
               ) {
-                Text("Load Sample", color = JuddlesEvergreen)
+                Text("Load Sample", color = primaryColor)
               }
+            }
+          }
+        }
+      }
+    } else if (state.transactions.isNotEmpty()) {
+      item {
+        Column(modifier = Modifier.fillMaxWidth()) {
+          Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+          ) {
+            Text(
+              text = "Latest Activity",
+              style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+              color = MaterialTheme.colorScheme.onBackground
+            )
+            Row(
+              modifier = Modifier
+                .clip(RoundedCornerShape(12.dp))
+                .clickable(onClick = onOpenExpensesClick)
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+              verticalAlignment = Alignment.CenterVertically
+            ) {
+              Text(
+                text = "See All",
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+              )
+              Spacer(modifier = Modifier.width(4.dp))
+              Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = "See all transactions",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(16.dp)
+              )
+            }
+          }
+          Spacer(modifier = Modifier.height(if (compact) 6.dp else 10.dp))
+          Column(verticalArrangement = Arrangement.spacedBy(if (compact) 6.dp else 10.dp)) {
+            state.transactions.take(if (compact) 4 else 3).forEach { tx ->
+              TransactionRowItem(
+                tx = tx,
+                hideAmounts = hide,
+                onClick = { onTransactionClick(tx) }
+              )
             }
           }
         }
@@ -616,34 +709,35 @@ private fun ActionShortcutTile(
   label: String,
   icon: ImageVector,
   circleColor: Color,
+  compact: Boolean,
   onClick: () -> Unit,
   tag: String,
   modifier: Modifier = Modifier
 ) {
   Surface(
     modifier = modifier
-      .height(92.dp)
+      .height(if (compact) 76.dp else 92.dp)
       .shadow(
         elevation = 6.dp,
-        shape = RoundedCornerShape(22.dp),
+        shape = RoundedCornerShape(if (compact) 16.dp else 22.dp),
         ambientColor = Color.Black.copy(alpha = 0.08f)
       )
-      .clip(RoundedCornerShape(22.dp))
+      .clip(RoundedCornerShape(if (compact) 16.dp else 22.dp))
       .clickable(onClick = onClick)
       .testTag(tag),
-    shape = RoundedCornerShape(22.dp),
+    shape = RoundedCornerShape(if (compact) 16.dp else 22.dp),
     color = MaterialTheme.colorScheme.surface
   ) {
     Column(
       modifier = Modifier
         .fillMaxSize()
-        .padding(vertical = 12.dp, horizontal = 4.dp),
+        .padding(vertical = if (compact) 8.dp else 12.dp, horizontal = 4.dp),
       horizontalAlignment = Alignment.CenterHorizontally,
       verticalArrangement = Arrangement.Center
     ) {
       Box(
         modifier = Modifier
-          .size(40.dp)
+          .size(if (compact) 34.dp else 40.dp)
           .clip(CircleShape)
           .background(circleColor),
         contentAlignment = Alignment.Center
@@ -652,10 +746,10 @@ private fun ActionShortcutTile(
           imageVector = icon,
           contentDescription = label,
           tint = Color.White,
-          modifier = Modifier.size(22.dp)
+          modifier = Modifier.size(if (compact) 18.dp else 22.dp)
         )
       }
-      Spacer(modifier = Modifier.height(8.dp))
+      Spacer(modifier = Modifier.height(if (compact) 4.dp else 8.dp))
       Text(
         text = label,
         style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
@@ -672,6 +766,7 @@ private fun QuickActionColumnItem(
   icon: ImageVector,
   iconBg: Color,
   iconTint: Color,
+  compact: Boolean,
   onClick: () -> Unit,
   tag: String
 ) {
@@ -680,13 +775,13 @@ private fun QuickActionColumnItem(
       .width(76.dp)
       .clip(RoundedCornerShape(16.dp))
       .clickable(onClick = onClick)
-      .padding(vertical = 6.dp, horizontal = 4.dp)
+      .padding(vertical = if (compact) 4.dp else 6.dp, horizontal = 4.dp)
       .testTag(tag),
     horizontalAlignment = Alignment.CenterHorizontally
   ) {
     Box(
       modifier = Modifier
-        .size(46.dp)
+        .size(if (compact) 40.dp else 46.dp)
         .clip(CircleShape)
         .background(iconBg),
       contentAlignment = Alignment.Center
@@ -695,10 +790,10 @@ private fun QuickActionColumnItem(
         imageVector = icon,
         contentDescription = title.replace("\n", " "),
         tint = iconTint,
-        modifier = Modifier.size(24.dp)
+        modifier = Modifier.size(if (compact) 20.dp else 24.dp)
       )
     }
-    Spacer(modifier = Modifier.height(8.dp))
+    Spacer(modifier = Modifier.height(if (compact) 4.dp else 8.dp))
     Text(
       text = title,
       style = MaterialTheme.typography.labelMedium.copy(

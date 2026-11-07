@@ -143,6 +143,27 @@ test("Authenticated owner: can create and query own transactions, goals, and bud
       .doc("budget_1")
       .set(validBudgetPayload(ALICE_UID, now))
   );
+
+  await assertSucceeds(
+    aliceDb
+      .collection("users")
+      .doc(ALICE_UID)
+      .set({
+        userId: ALICE_UID,
+        displayName: "Alice",
+        email: "alice@juddles.test",
+        preferredCurrency: "USD",
+        openingBalanceMinor: 100000,
+        monthlyGoalMinor: 500000,
+        compactMode: true,
+        hideAmounts: false,
+        themeMode: "AMOLED",
+        notificationsEnabled: true,
+        budgetAlertThreshold: 80,
+        createdAt: now,
+        updatedAt: now,
+      })
+  );
 });
 
 test("Cross-user isolation: Bob cannot read or modify Alice's records", async () => {

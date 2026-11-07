@@ -49,7 +49,7 @@ service cloud.firestore {
              data.compactMode is bool &&
              data.hideAmounts is bool &&
              data.themeMode is string &&
-             data.themeMode in ['LIGHT', 'DARK', 'SYSTEM'] &&
+             data.themeMode in ['LIGHT', 'DARK', 'SYSTEM', 'OCEAN', 'SUNSET', 'LAVENDER', 'MIDNIGHT', 'SAKURA', 'CYBERPUNK', 'COFFEE', 'NORDIC', 'AMOLED'] &&
              data.notificationsEnabled is bool &&
              data.budgetAlertThreshold is int &&
              data.budgetAlertThreshold >= 10 &&

@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -25,17 +26,33 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.AccountBalanceWallet
-import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.CardGiftcard
 import androidx.compose.material.icons.filled.DirectionsCar
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.EvStation
 import androidx.compose.material.icons.filled.Fastfood
+import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.FlightTakeoff
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.LocalGroceryStore
+import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.Paid
+import androidx.compose.material.icons.filled.Pets
+import androidx.compose.material.icons.filled.Restaurant
+import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ShoppingBag
+import androidx.compose.material.icons.filled.Spa
+import androidx.compose.material.icons.filled.Subscriptions
 import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material.icons.filled.Work
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -65,11 +82,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.FinancialCalculator
 import com.example.data.model.FinancialTransaction
+import com.example.data.model.JuddlesCategoryCatalog
 import com.example.data.model.TimePeriodFilter
 import com.example.ui.components.BalanceTrendLineChart
 import com.example.ui.components.IncomeVsExpensesBarChart
 import com.example.ui.components.SegmentedPillSelector
 import com.example.ui.components.SpendingDonutChartSection
+import com.example.ui.theme.JuddlesAmber
 import com.example.ui.theme.JuddlesAmberSoft
 import com.example.ui.theme.JuddlesBlue
 import com.example.ui.theme.JuddlesBlueSoft
@@ -80,11 +99,14 @@ import com.example.ui.theme.JuddlesEvergreen
 import com.example.ui.theme.JuddlesFreshGreen
 import com.example.ui.theme.JuddlesIceGreen
 import com.example.ui.theme.JuddlesMint
+import com.example.ui.theme.LocalCompactMode
+import com.example.ui.theme.LocalJuddlesDimensions
 import com.example.ui.viewmodel.JuddlesDashboardState
 import kotlin.math.roundToInt
 
 /**
- * Screen 4 — Expenses & Budgets Screen matching the fourth screen in the reference mockup.
+ * Screen 4 — Expenses & Budgets Screen matching the fourth screen in the reference mockup,
+ * with Compact Mode, Multi-Theme, and 26 Categories.
  */
 @Composable
 fun ExpensesScreen(
@@ -95,30 +117,46 @@ fun ExpensesScreen(
   onBudgetCardClick: () -> Unit,
   onTransactionClick: (FinancialTransaction) -> Unit,
   onSearchQueryChange: (String) -> Unit,
+  onCategoryFilterSelect: (String) -> Unit = {},
   modifier: Modifier = Modifier
 ) {
   var showSearchBar by remember { mutableStateOf(false) }
   val currency = state.profile.preferredCurrency
   val hide = state.profile.hideAmounts
+  val compact = LocalCompactMode.current || state.profile.compactMode
+  val dims = LocalJuddlesDimensions.current
+  val primaryColor = MaterialTheme.colorScheme.primary
+  val primaryContainer = MaterialTheme.colorScheme.primaryContainer
 
-  val periodTransactions = remember(state.transactions, state.selectedPeriod, state.searchQuery) {
-    val byPeriod = FinancialCalculator.filterByPeriod(state.transactions, state.selectedPeriod)
-    if (state.searchQuery.isBlank()) {
-      byPeriod
-    } else {
-      val q = state.searchQuery.trim().lowercase()
-      byPeriod.filter {
-        it.category.lowercase().contains(q) ||
-          it.note.lowercase().contains(q) ||
-          it.merchant.lowercase().contains(q)
+  val byPeriodTransactions = remember(state.transactions, state.selectedPeriod) {
+    FinancialCalculator.filterByPeriod(state.transactions, state.selectedPeriod)
+  }
+
+  val periodTransactions = remember(byPeriodTransactions, state.searchQuery, state.selectedCategoryFilter) {
+    byPeriodTransactions.filter { tx ->
+      val matchesCat = state.selectedCategoryFilter == "All" ||
+        tx.category.equals(state.selectedCategoryFilter, ignoreCase = true)
+      val matchesSearch = if (state.searchQuery.isBlank()) {
+        true
+      } else {
+        val q = state.searchQuery.trim().lowercase()
+        tx.category.lowercase().contains(q) ||
+          tx.note.lowercase().contains(q) ||
+          tx.merchant.lowercase().contains(q)
       }
+      matchesCat && matchesSearch
     }
   }
 
-  val totalSpentMinor = FinancialCalculator.totalExpensesMinor(periodTransactions)
-  val categoryBreakdown = FinancialCalculator.expenseCategoryBreakdown(periodTransactions)
+  val totalSpentMinor = FinancialCalculator.totalExpensesMinor(byPeriodTransactions)
+  val categoryBreakdown = FinancialCalculator.expenseCategoryBreakdown(byPeriodTransactions)
 
-  // Active budget (defaults to $2,000 monthly if none saved yet)
+  // Available categories for quick filter chips
+  val filterChipCategories = remember(byPeriodTransactions) {
+    val activeCats = byPeriodTransactions.map { it.category }.distinct()
+    listOf("All") + (activeCats + JuddlesCategoryCatalog.expenseCategories).distinct()
+  }
+
   val activeBudget = state.budgets.firstOrNull()
   val budgetLimitMinor = activeBudget?.limitMinor ?: 200000L
   val budgetSpentMinor = if (state.isSampleWorkspaceLoaded && totalSpentMinor == 125000L && budgetLimitMinor == 200000L) {
@@ -137,12 +175,12 @@ fun ExpensesScreen(
   LazyColumn(
     modifier = modifier.fillMaxSize(),
     contentPadding = PaddingValues(
-      start = 20.dp,
-      end = 20.dp,
-      top = 12.dp,
-      bottom = 104.dp
+      start = dims.screenHorizontalPadding,
+      end = dims.screenHorizontalPadding,
+      top = dims.screenTopPadding,
+      bottom = if (compact) 86.dp else 104.dp
     ),
-    verticalArrangement = Arrangement.spacedBy(16.dp)
+    verticalArrangement = Arrangement.spacedBy(dims.sectionSpacing)
   ) {
     // 1. Top Header: < Back | "Expenses" | Calendar/Reports button
     item {
@@ -153,7 +191,7 @@ fun ExpensesScreen(
       ) {
         Surface(
           modifier = Modifier
-            .size(44.dp)
+            .size(48.dp)
             .clip(CircleShape)
             .clickable(onClick = onBackClick)
             .testTag("expenses_back_button"),
@@ -181,19 +219,19 @@ fun ExpensesScreen(
 
         Surface(
           modifier = Modifier
-            .size(44.dp)
+            .size(48.dp)
             .clip(CircleShape)
             .clickable(onClick = onSwitchToReportsClick)
             .testTag("open_reports_from_expenses_button"),
           shape = CircleShape,
-          color = JuddlesIceGreen,
+          color = primaryContainer,
           shadowElevation = 3.dp
         ) {
           Box(contentAlignment = Alignment.Center) {
             Icon(
               imageVector = Icons.Default.CalendarMonth,
               contentDescription = "Open reports view",
-              tint = JuddlesEvergreen,
+              tint = primaryColor,
               modifier = Modifier.size(22.dp)
             )
           }
@@ -238,19 +276,22 @@ fun ExpensesScreen(
           .fillMaxWidth()
           .shadow(
             elevation = 6.dp,
-            shape = RoundedCornerShape(22.dp),
-            ambientColor = JuddlesEvergreen.copy(alpha = 0.10f)
+            shape = RoundedCornerShape(dims.cardCornerRadius),
+            ambientColor = primaryColor.copy(alpha = 0.10f)
           )
-          .clip(RoundedCornerShape(22.dp))
+          .clip(RoundedCornerShape(dims.cardCornerRadius))
           .clickable(onClick = onBudgetCardClick)
           .testTag("budget_status_card"),
-        shape = RoundedCornerShape(22.dp),
-        color = JuddlesIceGreen
+        shape = RoundedCornerShape(dims.cardCornerRadius),
+        color = MaterialTheme.colorScheme.surfaceVariant
       ) {
         Column(
           modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 18.dp, vertical = 16.dp)
+            .padding(
+              horizontal = dims.cardInnerHorizontalPadding,
+              vertical = dims.cardInnerVerticalPadding
+            )
         ) {
           Row(
             modifier = Modifier.fillMaxWidth(),
@@ -260,16 +301,16 @@ fun ExpensesScreen(
             Row(verticalAlignment = Alignment.CenterVertically) {
               Box(
                 modifier = Modifier
-                  .size(46.dp)
+                  .size(if (compact) 40.dp else 46.dp)
                   .clip(CircleShape)
-                  .background(Color.White),
+                  .background(MaterialTheme.colorScheme.surface),
                 contentAlignment = Alignment.Center
               ) {
                 Icon(
                   imageVector = Icons.Default.AccountBalanceWallet,
                   contentDescription = "Budget Wallet",
-                  tint = JuddlesEvergreen,
-                  modifier = Modifier.size(24.dp)
+                  tint = primaryColor,
+                  modifier = Modifier.size(if (compact) 20.dp else 24.dp)
                 )
               }
               Spacer(modifier = Modifier.width(12.dp))
@@ -284,7 +325,7 @@ fun ExpensesScreen(
                     withStyle(
                       SpanStyle(
                         fontWeight = FontWeight.Bold,
-                        fontSize = 19.sp,
+                        fontSize = if (compact) 17.sp else 19.sp,
                         color = MaterialTheme.colorScheme.onSurface
                       )
                     ) {
@@ -319,7 +360,6 @@ fun ExpensesScreen(
               }
             }
 
-            // Pill badge: "25% left" or warning badge
             Surface(
               shape = RoundedCornerShape(14.dp),
               color = if (isOverThreshold) JuddlesCoral else JuddlesBrightGreen
@@ -333,23 +373,23 @@ fun ExpensesScreen(
             }
           }
 
-          Spacer(modifier = Modifier.height(12.dp))
+          Spacer(modifier = Modifier.height(if (compact) 8.dp else 12.dp))
 
           LinearProgressIndicator(
             progress = { (budgetUsedPct / 100f).coerceIn(0f, 1f) },
             modifier = Modifier
               .fillMaxWidth()
-              .height(8.dp)
+              .height(if (compact) 6.dp else 8.dp)
               .clip(RoundedCornerShape(4.dp)),
-            color = if (isOverThreshold) JuddlesCoral else JuddlesEvergreen,
-            trackColor = JuddlesMint,
+            color = if (isOverThreshold) JuddlesCoral else primaryColor,
+            trackColor = primaryContainer,
             strokeCap = StrokeCap.Round
           )
         }
       }
     }
 
-    // 5. Recent Transactions Header + Search Toggle
+    // 5. Recent Transactions Header + Search & Category Filter Chips
     item {
       Column(modifier = Modifier.fillMaxWidth()) {
         Row(
@@ -385,6 +425,27 @@ fun ExpensesScreen(
           }
         }
 
+        Spacer(modifier = Modifier.height(6.dp))
+
+        // Horizontal Scrollable Category Filter Bar
+        LazyRow(
+          horizontalArrangement = Arrangement.spacedBy(6.dp),
+          modifier = Modifier.fillMaxWidth()
+        ) {
+          items(filterChipCategories) { cat ->
+            val selected = state.selectedCategoryFilter.equals(cat, ignoreCase = true)
+            FilterChip(
+              selected = selected,
+              onClick = { onCategoryFilterSelect(cat) },
+              label = { Text(cat) },
+              colors = FilterChipDefaults.filterChipColors(
+                selectedContainerColor = primaryColor,
+                selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+              )
+            )
+          }
+        }
+
         if (showSearchBar) {
           Spacer(modifier = Modifier.height(8.dp))
           OutlinedTextField(
@@ -406,15 +467,15 @@ fun ExpensesScreen(
     if (periodTransactions.isEmpty()) {
       item {
         Surface(
-          shape = RoundedCornerShape(20.dp),
+          shape = RoundedCornerShape(dims.cardCornerRadius),
           color = MaterialTheme.colorScheme.surface,
           modifier = Modifier.fillMaxWidth()
         ) {
           Text(
-            text = "No transactions recorded for this period.",
+            text = "No transactions recorded for this filter.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(20.dp)
+            modifier = Modifier.padding(dims.cardInnerHorizontalPadding)
           )
         }
       }
@@ -431,16 +492,32 @@ fun ExpensesScreen(
 }
 
 @Composable
-private fun TransactionRowItem(
+internal fun TransactionRowItem(
   tx: FinancialTransaction,
   hideAmounts: Boolean,
   onClick: () -> Unit
 ) {
+  val compact = LocalCompactMode.current
+  val primaryColor = MaterialTheme.colorScheme.primary
+
   val (iconVec, bgTint, iconColor) = when (tx.category.lowercase()) {
-    "food", "groceries", "dining" -> Triple(Icons.Default.Fastfood, JuddlesAmberSoft, Color(0xFFD97706))
+    "food", "burger" -> Triple(Icons.Default.Fastfood, JuddlesAmberSoft, Color(0xFFD97706))
+    "groceries" -> Triple(Icons.Default.LocalGroceryStore, Color(0xFFDCFCE7), Color(0xFF15803D))
+    "dining out", "dining", "restaurant" -> Triple(Icons.Default.Restaurant, JuddlesCoralSoft, JuddlesCoral)
     "transport", "car", "transit" -> Triple(Icons.Default.DirectionsCar, JuddlesBlueSoft, JuddlesBlue)
+    "fuel & ev", "fuel", "gas" -> Triple(Icons.Default.EvStation, Color(0xFFE0F2FE), Color(0xFF0284C7))
     "shopping" -> Triple(Icons.Default.ShoppingBag, Color(0xFFFCE7F3), Color(0xFFDB2777))
     "bills", "utilities" -> Triple(Icons.AutoMirrored.Filled.ReceiptLong, JuddlesIceGreen, JuddlesEvergreen)
+    "rent & mortgage", "rent", "housing" -> Triple(Icons.Default.Home, Color(0xFFEDE9FE), Color(0xFF6D28D9))
+    "health & fitness", "health", "medical" -> Triple(Icons.Default.FitnessCenter, Color(0xFFFFE4E6), Color(0xFFE11D48))
+    "entertainment", "movies" -> Triple(Icons.Default.Movie, JuddlesAmberSoft, Color(0xFFB45309))
+    "subscriptions" -> Triple(Icons.Default.Subscriptions, Color(0xFFF3E8FF), Color(0xFF7E22CE))
+    "travel", "vacation" -> Triple(Icons.Default.FlightTakeoff, JuddlesBlueSoft, JuddlesBlue)
+    "education" -> Triple(Icons.Default.School, JuddlesAmberSoft, JuddlesAmber)
+    "personal care" -> Triple(Icons.Default.Spa, Color(0xFFFCE7F3), Color(0xFFBE185D))
+    "pets" -> Triple(Icons.Default.Pets, JuddlesCoralSoft, JuddlesCoral)
+    "gifts & charity", "gift", "charity" -> Triple(Icons.Default.CardGiftcard, Color(0xFFFEF3C7), Color(0xFFD97706))
+    "salary", "freelance", "business" -> Triple(Icons.Default.Work, JuddlesMint, JuddlesEvergreen)
     else -> when (tx.type) {
       "INCOME" -> Triple(Icons.Default.Paid, JuddlesMint, JuddlesEvergreen)
       "TRANSFER" -> Triple(Icons.Default.SwapHoriz, JuddlesBlueSoft, JuddlesBlue)
@@ -453,20 +530,25 @@ private fun TransactionRowItem(
     else -> tx.amountMinor
   }
 
+  val cornerRadius = if (compact) 14.dp else 20.dp
+
   Surface(
     modifier = Modifier
       .fillMaxWidth()
-      .clip(RoundedCornerShape(20.dp))
+      .clip(RoundedCornerShape(cornerRadius))
       .clickable(onClick = onClick)
       .testTag("tx_item_${tx.category}"),
-    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
-    shape = RoundedCornerShape(20.dp),
+    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
+    shape = RoundedCornerShape(cornerRadius),
     shadowElevation = 2.dp
   ) {
     Row(
       modifier = Modifier
         .fillMaxWidth()
-        .padding(horizontal = 14.dp, vertical = 12.dp),
+        .padding(
+          horizontal = if (compact) 12.dp else 14.dp,
+          vertical = if (compact) 8.dp else 12.dp
+        ),
       verticalAlignment = Alignment.CenterVertically,
       horizontalArrangement = Arrangement.SpaceBetween
     ) {
@@ -476,7 +558,7 @@ private fun TransactionRowItem(
       ) {
         Box(
           modifier = Modifier
-            .size(48.dp)
+            .size(if (compact) 38.dp else 48.dp)
             .clip(CircleShape)
             .background(bgTint),
           contentAlignment = Alignment.Center
@@ -485,18 +567,26 @@ private fun TransactionRowItem(
             imageVector = iconVec,
             contentDescription = tx.category,
             tint = iconColor,
-            modifier = Modifier.size(24.dp)
+            modifier = Modifier.size(if (compact) 20.dp else 24.dp)
           )
         }
-        Spacer(modifier = Modifier.width(12.dp))
+        Spacer(modifier = Modifier.width(if (compact) 10.dp else 12.dp))
         Column {
           Text(
             text = tx.category,
-            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+            style = MaterialTheme.typography.titleMedium.copy(
+              fontWeight = FontWeight.Bold,
+              fontSize = if (compact) 15.sp else 16.sp
+            ),
             color = MaterialTheme.colorScheme.onSurface
           )
+          val subText = if (tx.merchant.isNotBlank()) {
+            "${tx.merchant} • ${FinancialCalculator.formatRelativeDate(tx.occurredAtEpochMillis)}"
+          } else {
+            FinancialCalculator.formatRelativeDate(tx.occurredAtEpochMillis)
+          }
           Text(
-            text = FinancialCalculator.formatRelativeDate(tx.occurredAtEpochMillis),
+            text = subText,
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
           )
@@ -511,9 +601,12 @@ private fun TransactionRowItem(
           includeCents = true,
           showSign = tx.type == "INCOME"
         ),
-        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+        style = MaterialTheme.typography.titleMedium.copy(
+          fontWeight = FontWeight.Bold,
+          fontSize = if (compact) 15.sp else 16.sp
+        ),
         color = when (tx.type) {
-          "INCOME" -> JuddlesEvergreen
+          "INCOME" -> primaryColor
           "TRANSFER" -> JuddlesBlue
           else -> MaterialTheme.colorScheme.onSurface
         }
@@ -523,7 +616,8 @@ private fun TransactionRowItem(
 }
 
 /**
- * Screen 5 — Reports Screen matching the fifth screen in the reference mockup.
+ * Screen 5 — Reports Screen matching the fifth screen in the reference mockup,
+ * with Overview / Trends / Insights tabs, Compact Mode, and PDF/CSV/TXT/MD Export.
  */
 @Composable
 fun ReportsScreen(
@@ -535,6 +629,10 @@ fun ReportsScreen(
 ) {
   val currency = state.profile.preferredCurrency
   val hide = state.profile.hideAmounts
+  val compact = LocalCompactMode.current || state.profile.compactMode
+  val dims = LocalJuddlesDimensions.current
+  val primaryColor = MaterialTheme.colorScheme.primary
+  val primaryContainer = MaterialTheme.colorScheme.primaryContainer
 
   val monthlyPoints = remember(state.transactions, state.profile.openingBalanceMinor) {
     FinancialCalculator.recentMonthsTrend(
@@ -545,6 +643,10 @@ fun ReportsScreen(
   }
 
   val periodTx = FinancialCalculator.filterByPeriod(state.transactions, state.selectedPeriod)
+  val totalIncomeMinor = FinancialCalculator.totalIncomeMinor(periodTx)
+  val totalExpenseMinor = FinancialCalculator.totalExpensesMinor(periodTx)
+  val categoryBreakdown = FinancialCalculator.expenseCategoryBreakdown(periodTx)
+
   val netSurplusMinor = if (state.isSampleWorkspaceLoaded && FinancialCalculator.netCashFlowMinor(periodTx) == 132000L) {
     132000L // Exact $1,320 in Screen 5 mockup!
   } else {
@@ -564,14 +666,14 @@ fun ReportsScreen(
   LazyColumn(
     modifier = modifier.fillMaxSize(),
     contentPadding = PaddingValues(
-      start = 20.dp,
-      end = 20.dp,
-      top = 12.dp,
-      bottom = 104.dp
+      start = dims.screenHorizontalPadding,
+      end = dims.screenHorizontalPadding,
+      top = dims.screenTopPadding,
+      bottom = if (compact) 86.dp else 104.dp
     ),
-    verticalArrangement = Arrangement.spacedBy(16.dp)
+    verticalArrangement = Arrangement.spacedBy(dims.sectionSpacing)
   ) {
-    // 1. Top Header: < Back | "Reports" | Chart/Share Export Button
+    // 1. Top Header: < Back | "Reports" | Export Button
     item {
       Row(
         modifier = Modifier.fillMaxWidth(),
@@ -580,7 +682,7 @@ fun ReportsScreen(
       ) {
         Surface(
           modifier = Modifier
-            .size(44.dp)
+            .size(48.dp)
             .clip(CircleShape)
             .clickable(onClick = onBackClick)
             .testTag("reports_back_button"),
@@ -608,19 +710,19 @@ fun ReportsScreen(
 
         Surface(
           modifier = Modifier
-            .size(44.dp)
+            .size(48.dp)
             .clip(CircleShape)
             .clickable(onClick = onShareExportClick)
             .testTag("export_reports_button"),
           shape = CircleShape,
-          color = JuddlesIceGreen,
+          color = primaryContainer,
           shadowElevation = 3.dp
         ) {
           Box(contentAlignment = Alignment.Center) {
             Icon(
-              imageVector = Icons.Default.BarChart,
-              contentDescription = "Export or share report summary",
-              tint = JuddlesEvergreen,
+              imageVector = Icons.Default.Download,
+              contentDescription = "Export report in PDF, CSV, TXT, or Markdown",
+              tint = primaryColor,
               modifier = Modifier.size(22.dp)
             )
           }
@@ -644,16 +746,19 @@ fun ReportsScreen(
           .fillMaxWidth()
           .shadow(
             elevation = 6.dp,
-            shape = RoundedCornerShape(24.dp),
+            shape = RoundedCornerShape(dims.cardCornerRadius),
             ambientColor = Color.Black.copy(alpha = 0.08f)
           ),
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(dims.cardCornerRadius),
         color = MaterialTheme.colorScheme.surface
       ) {
         Column(
           modifier = Modifier
             .fillMaxWidth()
-            .padding(20.dp)
+            .padding(
+              horizontal = dims.cardInnerHorizontalPadding,
+              vertical = dims.cardInnerVerticalPadding
+            )
         ) {
           Row(
             modifier = Modifier.fillMaxWidth(),
@@ -671,7 +776,7 @@ fun ReportsScreen(
               color = JuddlesBrightGreen
             )
           }
-          Spacer(modifier = Modifier.height(14.dp))
+          Spacer(modifier = Modifier.height(if (compact) 8.dp else 14.dp))
           BalanceTrendLineChart(points = monthlyPoints)
         }
       }
@@ -684,16 +789,19 @@ fun ReportsScreen(
           .fillMaxWidth()
           .shadow(
             elevation = 6.dp,
-            shape = RoundedCornerShape(24.dp),
+            shape = RoundedCornerShape(dims.cardCornerRadius),
             ambientColor = Color.Black.copy(alpha = 0.08f)
           ),
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(dims.cardCornerRadius),
         color = MaterialTheme.colorScheme.surface
       ) {
         Column(
           modifier = Modifier
             .fillMaxWidth()
-            .padding(20.dp)
+            .padding(
+              horizontal = dims.cardInnerHorizontalPadding,
+              vertical = dims.cardInnerVerticalPadding
+            )
         ) {
           Row(
             modifier = Modifier.fillMaxWidth(),
@@ -739,30 +847,139 @@ fun ReportsScreen(
               }
             }
           }
-          Spacer(modifier = Modifier.height(14.dp))
+          Spacer(modifier = Modifier.height(if (compact) 8.dp else 14.dp))
           IncomeVsExpensesBarChart(points = monthlyPoints)
         }
       }
     }
 
-    // 5. Bottom Surplus / Net Cash Flow Card ("Your Profit" in mockup, with explicit Net Cash Flow definition per PDF Section 4)
+    // 5. Tab-Specific Detailed Analytics Section (Overview / Trends / Insights)
+    if (state.selectedReportsTab == 1) {
+      // Trends Tab: Month-by-Month Breakdown Table
+      item {
+        Surface(
+          shape = RoundedCornerShape(dims.cardCornerRadius),
+          color = MaterialTheme.colorScheme.surface,
+          shadowElevation = 4.dp,
+          modifier = Modifier.fillMaxWidth()
+        ) {
+          Column(
+            modifier = Modifier
+              .fillMaxWidth()
+              .padding(
+                horizontal = dims.cardInnerHorizontalPadding,
+                vertical = dims.cardInnerVerticalPadding
+              ),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+          ) {
+            Text(
+              text = "Monthly Cash Flow Breakdown",
+              style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+              color = MaterialTheme.colorScheme.onSurface
+            )
+            monthlyPoints.forEach { pt ->
+              val net = pt.incomeMinor - pt.expenseMinor
+              Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+              ) {
+                Text(
+                  text = pt.monthLabel,
+                  style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                  color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                  text = "In: ${FinancialCalculator.formatCurrencyMinor(pt.incomeMinor, currency, hide, false)} • Out: ${
+                    FinancialCalculator.formatCurrencyMinor(pt.expenseMinor, currency, hide, false)
+                  }",
+                  style = MaterialTheme.typography.bodySmall,
+                  color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                  text = FinancialCalculator.formatCurrencyMinor(net, currency, hide, false, showSign = true),
+                  style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                  color = if (net >= 0) primaryColor else JuddlesCoral
+                )
+              }
+            }
+          }
+        }
+      }
+    } else if (state.selectedReportsTab == 2) {
+      // Insights Tab: Smart Financial Ratios & Top Category Insights
+      item {
+        val topCategory = categoryBreakdown.firstOrNull()
+        val savingsPctText = if (savingsRate != null) "${(savingsRate * 10.0).roundToInt() / 10.0}%" else "0%"
+        Surface(
+          shape = RoundedCornerShape(dims.cardCornerRadius),
+          color = MaterialTheme.colorScheme.surface,
+          shadowElevation = 4.dp,
+          modifier = Modifier.fillMaxWidth()
+        ) {
+          Column(
+            modifier = Modifier
+              .fillMaxWidth()
+              .padding(
+                horizontal = dims.cardInnerHorizontalPadding,
+                vertical = dims.cardInnerVerticalPadding
+              ),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+          ) {
+            Text(
+              text = "Financial Health Insights",
+              style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+              color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+              text = "• Savings Rate: $savingsPctText of period income (${
+                FinancialCalculator.formatCurrencyMinor(totalIncomeMinor, currency, hide, false)
+              }).",
+              style = MaterialTheme.typography.bodyMedium,
+              color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+              text = if (topCategory != null) {
+                "• Top Expense Category: ${topCategory.category} (${topCategory.percentage.roundToInt()}% of spending)."
+              } else {
+                "• Top Expense Category: No expenses recorded yet."
+              },
+              style = MaterialTheme.typography.bodyMedium,
+              color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+              text = "• Total Period Spend: ${
+                FinancialCalculator.formatCurrencyMinor(totalExpenseMinor, currency, hide, false)
+              } across ${periodTx.count { it.type == "EXPENSE" }} expense records.",
+              style = MaterialTheme.typography.bodyMedium,
+              color = MaterialTheme.colorScheme.onSurface
+            )
+          }
+        }
+      }
+    }
+
+    // 6. Bottom Surplus / Net Cash Flow Card ("Your Profit" in mockup)
     item {
       Surface(
         modifier = Modifier
           .fillMaxWidth()
           .shadow(
             elevation = 6.dp,
-            shape = RoundedCornerShape(24.dp),
-            ambientColor = JuddlesEvergreen.copy(alpha = 0.12f)
+            shape = RoundedCornerShape(dims.cardCornerRadius),
+            ambientColor = primaryColor.copy(alpha = 0.12f)
           )
           .testTag("surplus_profit_card"),
-        shape = RoundedCornerShape(24.dp),
-        color = JuddlesMint
+        shape = RoundedCornerShape(dims.cardCornerRadius),
+        color = primaryContainer
       ) {
         Row(
           modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 18.dp, vertical = 18.dp),
+            .padding(
+              horizontal = dims.cardInnerHorizontalPadding,
+              vertical = dims.cardInnerVerticalPadding
+            ),
           verticalAlignment = Alignment.CenterVertically,
           horizontalArrangement = Arrangement.SpaceBetween
         ) {
@@ -772,16 +989,16 @@ fun ReportsScreen(
           ) {
             Box(
               modifier = Modifier
-                .size(46.dp)
+                .size(if (compact) 40.dp else 46.dp)
                 .clip(CircleShape)
-                .background(Color.White),
+                .background(MaterialTheme.colorScheme.surface),
               contentAlignment = Alignment.Center
             ) {
               Icon(
                 imageVector = Icons.AutoMirrored.Filled.TrendingUp,
                 contentDescription = "Surplus growth",
-                tint = JuddlesEvergreen,
-                modifier = Modifier.size(24.dp)
+                tint = primaryColor,
+                modifier = Modifier.size(if (compact) 20.dp else 24.dp)
               )
             }
             Spacer(modifier = Modifier.width(14.dp))
@@ -800,23 +1017,22 @@ fun ReportsScreen(
                 ),
                 style = MaterialTheme.typography.headlineLarge.copy(
                   fontWeight = FontWeight.Bold,
-                  fontSize = 28.sp
+                  fontSize = if (compact) 24.sp else 28.sp
                 ),
                 color = MaterialTheme.colorScheme.onBackground
               )
               Text(
                 text = "$trendGrowthLabel  •  Income − Expenses",
                 style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                color = JuddlesEvergreen
+                color = primaryColor
               )
             }
           }
 
-          // Right-side ascending 3-bar + arrow mini graphic matching Screen 5 bottom-right
           Canvas(
             modifier = Modifier
-              .width(78.dp)
-              .height(62.dp)
+              .width(if (compact) 66.dp else 78.dp)
+              .height(if (compact) 52.dp else 62.dp)
           ) {
             val w = size.width
             val h = size.height
@@ -855,6 +1071,25 @@ fun ReportsScreen(
             )
           }
         }
+      }
+    }
+
+    // 7. Quick Export Action Button (PDF / CSV / TXT / MD)
+    item {
+      OutlinedButton(
+        onClick = onShareExportClick,
+        shape = RoundedCornerShape(20.dp),
+        modifier = Modifier
+          .fillMaxWidth()
+          .testTag("reports_export_all_formats_button")
+      ) {
+        Icon(Icons.Default.Download, contentDescription = null, tint = primaryColor)
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+          text = "Export Report (PDF • CSV • TXT • MD)",
+          color = primaryColor,
+          fontWeight = FontWeight.Bold
+        )
       }
     }
   }
